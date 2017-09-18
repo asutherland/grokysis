@@ -88,8 +88,8 @@ const CAPTURED_LINE_LABEL = "a log line";
     let baseName = isRotateFile(file);
     if (baseName) {
       return baseName[1];
-    } 
-    
+    }
+
     return file.name;
   }
 
@@ -752,7 +752,7 @@ const CAPTURED_LINE_LABEL = "a log line";
 
     consumeURL: function(UI, url) {
       this.seekId = 0;
-      this.initProc();
+      this.initProc(UI);
 
       fetch(url).then(function(response) {
         return response.blob();
@@ -767,7 +767,7 @@ const CAPTURED_LINE_LABEL = "a log line";
 
       this.files = Array.from(files);
       this.seekId = 0;
-      this.initProc();
+      this.initProc(UI);
 
       UI.resetProgress();
 
