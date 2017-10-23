@@ -439,7 +439,7 @@
 
               expander = (expand) => {
                 let fromTop = element.offset().top - $(window).scrollTop();
-               
+
                 // Must call in this order, since onExpansion wants to get the same color
                 this.objColor(obj);
                 this.objHighlighter(obj, obj, expand)();
@@ -475,7 +475,7 @@
               }
 
               this.expanders[obj.id] = expander;
-              expander(true);              
+              expander(true);
             }.bind(this))
           );
 
