@@ -639,7 +639,7 @@ export default netdiagUI = {
   csspos: function(obj) {
     return {
       left: this.screen(obj.captures[0].time),
-      width: this.width(obj.captures[0].time, obj.captures.last().time)
+      width: this.width(obj.captures[0].time, obj.captures.slice(-1)[0].time)
     }
   },
   */

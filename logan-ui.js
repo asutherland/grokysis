@@ -340,7 +340,7 @@
       }) {
         let props = propKeys(obj.props);
 
-        if (!logan.seekId || obj.captures.last().id < logan.seekId) {
+        if (!logan.seekId || obj.captures.slice(-1)[0].id < logan.seekId) {
           // Object is younger than the seek point, just pick the final props state
           return generate(obj, props);
         }
