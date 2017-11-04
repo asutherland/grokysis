@@ -290,7 +290,7 @@ const CAPTURED_LINE_LABEL = "a log line";
 
           reader.onerror = (event) => {
             reader.abort();
-            reject(event.type);
+            reject(reader.error);
           };
 
           reader.readAsBinaryString(blob);
