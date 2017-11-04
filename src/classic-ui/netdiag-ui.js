@@ -1,4 +1,6 @@
-import ClassOfServiceFlagsType from '../schemas/moz/types/ClassOfServiceFlags.js';
+import { ensure } from "../logysis/utils.js";
+
+import ClassOfServiceFlagsType from "../schemas/moz/types/ClassOfServiceFlags.js";
 // Refactor helper to minimize diff hunk divergence.
 const COS = () => ClassOfServiceFlagsType;
 
