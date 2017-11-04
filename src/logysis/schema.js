@@ -1,4 +1,4 @@
-import { ensure, pointerTrim } from "./utils.js";
+import { ensure, pointerTrim, removeFromArray } from "./utils.js";
 
 function Schema(namespace, lineRegexp, linePreparer) {
   this.namespace = namespace;
@@ -58,7 +58,7 @@ Schema.prototype.ruleIf = function(exp, condition, consumer) {
 };
 
 Schema.prototype.removeIf = function(rule) {
-  this.unmatch.remove(item => item.id === rule.id);
+  removeFromArray(item => item.id === rule.id, this.unmatch);
 }
 
 Schema.prototype.summaryProps = function(className, arrayOfProps) {

@@ -1,32 +1,8 @@
+import { removeFromArray } from "./utils.js"
+
 const LOG = false ? (output) => { console.log(output) } : () => { };
 
 var logan = null;
-
-Array.prototype.remove = function(finder) {
-  let index = this.findIndex(finder);
-  if (index > -1) {
-    this.splice(index, 1);
-  }
-};
-
-Array.prototype.after = function(element, finder) {
-  let index = this.findIndex(finder);
-  if (index > -1) {
-    this.splice(index + 1, 0, element);
-  } else {
-    this.push(element);
-  }
-};
-
-Array.prototype.before = function(element, finder) {
-  let index = this.findIndex(finder);
-  if (index > -1) {
-    this.splice(index, 0, element);
-  } else {
-    this.unshift(element);
-  }
-};
-
 
 const GREP_REGEXP = new RegExp("((?:0x)?[A-Fa-f0-9]{4,})", "g");
 const POINTER_REGEXP = /^0*([0-9A-Fa-f]+)$/;
@@ -332,7 +308,7 @@ const CAPTURED_LINE_LABEL = "a log line";
           }
 
           if (!file.lines.length) {
-            files.remove((item) => file === item);
+            removeFromArray((item) => file === item, files);
 
             if (!file.read_more) {
               continue;
