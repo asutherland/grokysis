@@ -1,5 +1,5 @@
+import Capture from "./capture.js";
 import { ensure, pointerTrim } from "./utils.js";
-
 
 function Bag(def) {
   for (let prop in def) {
@@ -46,7 +46,7 @@ function Obj(ptr) {
 
 Obj.prototype.on = Bag.prototype.on;
 
-Obj.prototype.create = function(className) {
+Obj.prototype.create = function(className, capture = true) {
   if (this.props.className) {
     console.warn(logan.exceptionParse("object already exists, recreting automatically from scratch"));
     this.destroy();
@@ -57,7 +57,11 @@ Obj.prototype.create = function(className) {
 
   this.props.className = className;
   this.prop("state", "created");
-  return this.capture();
+
+  if (capture) {
+    this.capture();
+  }
+  return this;
 };
 
 Obj.prototype.alias = function(alias) {
@@ -72,6 +76,11 @@ Obj.prototype.alias = function(alias) {
   alias = pointerTrim(alias);
   logan._proc.objs[alias] = this;
   this.aliases[alias] = true;
+
+  if (!alias.match(POINTER_REGEXP)) {
+    logan._schema.update_alias_regexp();
+  }
+
   return this;
 };
 
@@ -81,11 +90,19 @@ Obj.prototype.destroy = function(ifClassName) {
   }
 
   delete logan._proc.objs[this.props.pointer];
+  let updateAliasRegExp = false;
   for (let alias in this.aliases) {
+    if (!alias.match(POINTER_REGEXP)) {
+      updateAliasRegExp = true;
+    }
     delete logan._proc.objs[alias];
   }
   this.prop("state", "released");
   delete this._references;
+
+  if (updateAliasRegExp) {
+    logan._schema.update_alias_regexp();
+  }
 
   return this.capture();
 };
@@ -231,7 +248,7 @@ Obj.prototype.class = function(className) {
     // Already created
     return this;
   }
-  return this.create(className).state("partial").prop("missing-constructor", true);
+  return this.create(className, false).state("partial").prop("missing-constructor", true);
 };
 
 Obj.prototype.dispatch = function(target, name) {

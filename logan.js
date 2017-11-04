@@ -5,7 +5,7 @@ const LOG = false ? (output) => { console.log(output) } : () => { };
 var logan = null;
 
 const GREP_REGEXP = new RegExp("((?:0x)?[A-Fa-f0-9]{4,})", "g");
-const POINTER_REGEXP = /^0*([0-9A-Fa-f]+)$/;
+const POINTER_REGEXP = /^(?:0x)?0*([0-9A-Fa-f]+)$/;
 const NULLPTR_REGEXP = /^(?:(?:0x)?0+|\(null\)|\(nil\))$/;
 const CAPTURED_LINE_LABEL = "a log line";
 
@@ -88,6 +88,9 @@ const CAPTURED_LINE_LABEL = "a log line";
           obj = new Obj(ptr);
           if (store) {
             this.objs[ptr] = obj;
+            if (!ptr.match(POINTER_REGEXP)) {
+              logan._schema.update_alias_regexp();
+            }
           }
         }
 

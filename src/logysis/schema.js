@@ -22,23 +22,39 @@ function Schema(namespace, lineRegexp, linePreparer) {
     // This is grep() handler, has to be added as last because its condition handler
     // never returns true making following conditional rules process the line as well.
     this.plainIf(function(state) {
-      let pointers = state.line.match(GREP_REGEXP);
-      if (pointers) {
-        if (pointers.length === 1 && state.line.trim() == pointers[0]) {
-          // It doesn't make sense to include lines only containing the pointer.
-          // TODO the condition here should be made even smarter to filter out
-          // more of just useless lines.
-          return;
+      for (let regexp of [GREP_REGEXP, this.nonPtrAliases]) {
+        if (!regexp) {
+          break;
         }
-        for (let ptr of pointers) {
-          let obj = state.objs[pointerTrim(ptr)];
-          if (obj && obj._grep) {
-            obj.capture();
+        let pointers = state.line.match(regexp);
+        if (pointers) {
+          if (pointers.length === 1 && state.line.trim() == pointers[0]) {
+            // It doesn't make sense to include lines only containing the pointer.
+            // TODO the condition here should be made even smarter to filter out
+            // more of just useless lines.
+            break;
+          }
+          for (let ptr of pointers) {
+            let obj = state.objs[pointerTrim(ptr)];
+            if (obj && obj._grep) {
+              obj.capture();
+            }
           }
         }
       }
-    }, () => { throw "grep() internal consumer should never be called"; });
-  }
+    }.bind(this), () => { throw "grep() internal consumer should never be called"; });
+  };
+
+  this.update_alias_regexp = function() {
+    let nonPtrAliases = [];
+    for (let obj of Object.keys(logan._proc.objs)) {
+      if (!obj.match(POINTER_REGEXP)) {
+        nonPtrAliases.push(escapeRegexp(obj));
+      }
+    }
+    console.log(nonPtrAliases);
+    this.nonPtrAliases = nonPtrAliases.length === 0 ? null : new RegExp("(" + nonPtrAliases.join("|") + ")", "g");
+  };
 }
 
 Schema.prototype.module = function(name, builder) {
