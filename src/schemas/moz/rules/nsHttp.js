@@ -332,6 +332,7 @@ export default (module) => {
     trans = this.obj(trans).prop("status", status).state("closed").capture();
     trans.dispatch(trans.httpchannel, "stop");
     netdiag.transactionDone(trans);
+    this.thread.closedhttptransaction = trans;
   });
   module.rule("nsHttpTransaction::WritePipeSegment %p written=%u", function(trans, count) {
     trans = this.obj(trans).capture().dispatch(trans.httpchannel, "data");
@@ -346,12 +347,15 @@ export default (module) => {
     netdiag.transactionThrottlePressure(trans);
   });
   module.rule("nsHttpTransaction::WriteSegments %p response throttled", function(trans) {
-    trans = this.obj(trans).state("throttled").prop("ever-throttled", true).capture();
+    trans = this.obj(trans).prop("throttled", true).prop("ever-throttled", true).capture();
     netdiag.transactionThrottled(trans);
   });
   module.rule("nsHttpTransaction::ResumeReading %p", function(trans) {
-    this.obj(trans).state("unthrottled").capture();
+    this.obj(trans).prop("throttled", false).capture();
     netdiag.transactionUnthrottled(trans);
+  });
+  module.rule("nsHttpConnectionMgr::ShouldThrottle trans=%p", function(trans) {
+    this.obj(trans).capture().follow("  %*$", trans => trans.capture());
   });
   module.rule("Destroying nsHttpTransaction @%p", function(ptr) {
     this.obj(ptr).destroy();
@@ -374,6 +378,9 @@ export default (module) => {
     trans = this.obj(trans).state("active").capture().link(conn);
     trans.httpconnection = conn;
     netdiag.transactionActive(trans);
+  });
+  module.rule("nsHttpConnection::SetUrgentStartOnly [this=%p urgent=%d]", function(conn, urgent) {
+    this.obj(conn).prop("urgent", urgent === "1").capture();
   });
   module.rule("nsHttpConnection::OnSocketWritable %p ReadSegments returned [rv=%d read=%d sock-cond=%x again=%d]", function(conn, rv, read, cond, again) {
     conn = this.obj(conn).class("nsHttpConnection").capture().grep();
@@ -400,6 +407,7 @@ export default (module) => {
   });
   module.rule("nsHttpConnectionMgr::OnMsgReclaimConnection [ent=%p conn=%p]", function(ent, conn) {
     this.thread.httpconnection_reclame = this.obj(conn).capture().mention(ent);
+    this.thread.httpconnection_reclame.closedtransaction = this.thread.closedhttptransaction;
   });
   module.rule("nsHttpConnection::MoveTransactionsToSpdy moves single transaction %p into SpdySession %p", function(tr, session) {
     this.thread.httpspdytransaction = this.obj(tr);
@@ -542,6 +550,9 @@ export default (module) => {
     let connEntry = this.obj(key).capture();
     this.thread.on("httpconnection_reclame", conn => {
       connEntry.mention(conn);
+      conn.on("closedtransaction", trans => {
+        connEntry.capture("Last transaction on the connection:").mention(trans);
+      });
     });
   });
   module.rule("nsHttpConnectionMgr::ProcessPendingQForEntry [ci=%s ent=%p active=%d idle=%d urgent-start-queue=%d queued=%d]", function(ci, ent) {
@@ -564,5 +575,10 @@ export default (module) => {
     proc => proc.thread.httptransaction, function(trhost, conhost, tr) {
       this.thread.httpspdytransaction = tr;
     });
+  module.rule("nsHttpConnectionMgr::TryDispatchTransactionOnIdleConn, ent=%p, trans=%p, urgent=%d", function(ent, trans, ur) {
+    this.obj(trans).capture().follow("  %* [conn=%p]", (trans, message, conn) => {
+      trans.capture().mention(conn);
+    });
+  });
   schema.summaryProps("nsConnectionEntry", "key");
 };
