@@ -115,7 +115,7 @@ const EPOCH_1970 = new Date("1970-01-01");
       // private
 
       save: function() {
-        return ["timestamp", "thread", "line", "file", "module", "raw"].reduce(
+        return ["timestamp", "thread", "line", "file", "module", "raw", "binaryoffset"].reduce(
           (result, prop) => (result[prop] = this[prop], result), {});
       },
 
@@ -162,7 +162,7 @@ const EPOCH_1970 = new Date("1970-01-01");
         exception = "'" + exception.message + "' at " + exception.fileName + ":" + exception.lineNumber
       }
       exception += "\nwhile processing '" + this._proc.raw +
-                   "'\nat " + this._proc.file.name + ":" + this._proc.linenumber + " (line#s are inaccurate)";
+                   "'\nat " + this._proc.file.name + ":" + this._proc.linenumber;
       return new Error(exception);
     },
 
@@ -253,6 +253,7 @@ const EPOCH_1970 = new Date("1970-01-01");
       UI.addToMaxProgress(file.size);
 
       file.__line_number = 0;
+      file.__binary_offset = 0;
 
       let previousLine = "";
       let slice = (segment) => {
@@ -271,7 +272,7 @@ const EPOCH_1970 = new Date("1970-01-01");
             if (event.target.readyState == FileReader.DONE && event.target.result) {
               UI.addToLoadProgress(blob.size);
 
-              let lines = event.target.result.split(/[\r\n]+/);
+              let lines = event.target.result.split(/(\r\n|\r|\n)/);
 
               // This simple code assumes that a single line can't be longer than FILE_SLICE
               lines[0] = previousLine + lines[0];
@@ -306,25 +307,42 @@ const EPOCH_1970 = new Date("1970-01-01");
         // Make sure that the first line on each of the files is prepared
         // Preparation means to determine timestamp, thread name, module, if found,
         // or derived from the last prepared line
-        for (let file of Array.from(files)) {
+        singlefile: for (let file of Array.from(files)) {
           if (file.prepared) {
             continue;
           }
 
-          if (!file.lines.length) {
-            removeFromArray((item) => file === item, files);
+          let line;
 
-            if (!file.read_more) {
-              continue;
+          // This also skips all empty and CRLF-only lines.
+          nextline: while (!file.prepared) {
+            while (line === undefined || line.match(/^([\r\n]+)$/)) {
+              if (!file.lines.length) {
+                files.remove((item) => file === item);
+                if (!file.read_more) {
+                  break singlefile;
+                }
+
+                file = await file.read_more();
+                files.push(file);
+              }
+
+              line = file.lines.shift();
+              file.file.__binary_offset += line.length;
             }
 
-            file = await file.read_more();
-            files.push(file);
-          }
+            file.file.__line_number++;
+            if (!line.length) {
+              // A blank line, skip it, but count
+              line = undefined;
+              continue nextline;
+            }
 
-          file.prepared = this.prepareLine(file.lines.shift(), file.previous);
-          file.file.__line_number++;
-        }
+            file.prepared = this.prepareLine(line, file.previous);
+            file.prepared.linenumber = file.file.__line_number;
+            file.prepared.binaryoffset = file.file.__binary_offset;
+          } // nextline:
+        } // singlefile:
 
         if (!files.length) {
           break;
@@ -387,7 +405,8 @@ const EPOCH_1970 = new Date("1970-01-01");
       this._proc.line = prepared.text;
       this._proc.raw = prepared.raw;
       this._proc.module = prepared.module;
-      this._proc.linenumber = file.__line_number;
+      this._proc.linenumber = prepared.linenumber;
+      this._proc.binaryoffset = prepared.binaryoffset;
       this._proc.thread = ensure(this._proc.threads,
         file.__base_name + "|" + prepared.threadname,
         () => new Bag({ name: prepared.threadname, _engaged_follows: {} }));
