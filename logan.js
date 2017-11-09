@@ -12,7 +12,7 @@ const EPOCH_1970 = new Date("1970-01-01");
 
 (function() {
 
-  const FILE_SLICE = 5 * 1024 * 1024;
+  const FILE_SLICE = 1 * 1024 * 1024;
   const USE_RULES_TREE_OPTIMIZATION = true;
 
   let IF_RULE_INDEXER = 0;
@@ -272,6 +272,7 @@ const EPOCH_1970 = new Date("1970-01-01");
             if (event.target.readyState == FileReader.DONE && event.target.result) {
               UI && UI.addToLoadProgress(blob.size);
 
+              // Change chunk size to 5MB and Chrome self-time of shift() is 1000x slower!
               let lines = event.target.result.split(/(\r\n|\r|\n)/);
 
               // This simple code assumes that a single line can't be longer than FILE_SLICE
@@ -334,40 +335,38 @@ const EPOCH_1970 = new Date("1970-01-01");
             continue;
           }
 
-          nextline: while (!file.prepared) {
-            let line;
-            let offset;
-
-            // Calculate line separators into binary offset
-            while (line === undefined || line.match(/^([\r\n]+)$/)) {
-              if (!file.lines.length) {
-                files.remove((item) => file === item);
-                if (!file.read_more) {
-                  break singlefile;
-                }
-
-                file = await file.read_more();
-                files.push(file);
+          do {
+            if (!file.lines.length) {
+              files.remove((item) => file === item);
+              if (!file.read_more) {
+                break singlefile;
               }
 
-              line = file.lines.shift();
-              // This is where this line starts
-              offset = file.file.__binary_offset;
-              file.file.__binary_offset += line.length;
+              file = await file.read_more();
+              files.push(file);
+            }
+
+            let line = file.lines.shift();
+
+            let offset = file.file.__binary_offset;
+            file.file.__binary_offset += line.length;
+
+            if (line.match(/^[\r\n]+$/)) {
+              continue;
             }
 
             file.file.__line_number++;
-            // A blank line?  Skip it, but count
-            if (!line.length) {
-              continue nextline;
+
+            if (!line.length) { // a blank line
+              continue;
             }
 
             file.prepared = this.prepareLine(line, file.previous);
             file.prepared.linenumber = file.file.__line_number;
             file.prepared.binaryoffset = offset;
             file.prepared.nextoffset = file.file.__binary_offset;
-          } // nextline:
-        } // singlefile:
+          } while (!file.prepared);
+        } // singlefile: for
 
         if (!files.length) {
           break;
@@ -377,7 +376,7 @@ const EPOCH_1970 = new Date("1970-01-01");
         // we then consume files[0].
         files.sort((a, b) => {
           return a.prepared.timestamp.getTime() - b.prepared.timestamp.getTime() ||
-                 a.file.__base_order - b.file.__base_order; // overlapping of timestamp in rotated files
+            a.file.__base_order - b.file.__base_order; // overlapping of timestamp in rotated files
         });
 
         let consume = files.find(file => !file.file.__recv_wait);
