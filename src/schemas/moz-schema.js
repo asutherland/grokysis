@@ -19,6 +19,7 @@ import pipnss from "moz/rules/pipnss.js";
 import PresShell from "moz/rules/PresShell.js";
 import RequestContext from "moz/rules/RequestContext.js";
 import ScriptLoader from "moz/rules/ScriptLoader.js";
+import test from "moz/rules/test.js";
 
 import nsChannelClassifier from "moz/rules/nsChannelClassifier";
 import nsDocShellLeak from "moz/rules/nsDocShellLeak";
@@ -39,6 +40,7 @@ export default function(schema) {
   schema.module("PresShell", PresShell);
   schema.module("RequestContext", RequestContext);
   schema.module("ScriptLoader", ScriptLoader);
+  schema.module("test", test);
 
   schema.module("nsChannelClassifier", nsChannelClassifier);
   schema.module("nsDocShellLeak", nsDocShellLeak);
