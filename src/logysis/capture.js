@@ -3,8 +3,8 @@ function Capture(what) {
   this.time = logan._proc.timestamp;
   this.line = logan._proc.linenumber;
   this.location = {
-    file: this.file,
-    offset: this.binaryoffset,
+    file: logan._proc.file,
+    offset: logan._proc.binaryoffset,
   };
   this.thread = logan._proc.thread;
   this.what = what;
