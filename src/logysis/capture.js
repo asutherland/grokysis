@@ -5,6 +5,7 @@ function Capture(what) {
   this.location = {
     file: logan._proc.file,
     offset: logan._proc.binaryoffset,
+    next: logan._proc.nextoffset,
   };
   this.thread = logan._proc.thread;
   this.what = what;
