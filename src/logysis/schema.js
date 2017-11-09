@@ -1,9 +1,8 @@
 import { ensure, pointerTrim, removeFromArray } from "./utils.js";
 
-function Schema(namespace, lineRegexp, linePreparer) {
+function Schema(namespace, preparer) {
   this.namespace = namespace;
-  this.lineRegexp = lineRegexp;
-  this.linePreparer = linePreparer;
+  this.preparer = preparer;
   this.modules = {};
   this.unmatch = [];
   this.ui = {
