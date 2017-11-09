@@ -64,7 +64,7 @@ export default (module) => {
   });
   module.rule("HttpChannelParent::ConnectChannel: Looking for a registered channel [this=%p, id=%u]", function(ch, id) {
     this.obj(ch).ipcid(id).recv("HttpChannel::ConnectParent", (parent, child) => {
-      parent.capture().follow("  and it is nsHttpChannel %p", function(parent, httpch) {
+      parent.capture().follow("  and it is HttpBaseChannel %p", function(parent, httpch) {
         parent.link(this.obj(httpch).ipcid(parent.ipcid()));
       });
       parent.httpchannelchild = child.link(parent);
