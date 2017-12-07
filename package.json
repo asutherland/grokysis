@@ -12,6 +12,6 @@
     "webpack": "^3.8.1"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "./node_modules/karma/bin/karma start --single-run"
   }
 }
