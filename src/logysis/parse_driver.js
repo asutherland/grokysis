@@ -7,14 +7,14 @@ class ParseDriver {
 
   }
 
-  exceptionParse: function(exception) {
+  exceptionParse(exception) {
     if (typeof exception === "object") {
       exception = "'" + exception.message + "' at " + exception.fileName + ":" + exception.lineNumber
     }
     exception += "\nwhile processing '" + this._proc.raw +
                   "'\nat " + this._proc.file.name + ":" + this._proc.linenumber;
     return new Error(exception);
-  },
+  }
 
   /**
    * Given the implicit argument `this.files`, interpret filenames to determine
@@ -23,7 +23,7 @@ class ParseDriver {
    * byproducts and setting whether the log is believed to be e10s.  (This is
    * potentially wrong in the case of mach-generated logs, etc.)
    */
-  initProc: function(UI) {
+  initProc(UI) {
     this.objects = [];
     this.searchProps = {};
 
@@ -58,7 +58,7 @@ class ParseDriver {
     this._proc.objs = {};
 
     netdiag.reset();
-  },
+  }
 
   /**
    * Fetch a URL as a Blob and hand off the result to `consumeFiles` to further
@@ -66,7 +66,7 @@ class ParseDriver {
    *
    * TODO: UI entanglements.
    */
-  consumeURL: function(UI, url) {
+  consumeURL(UI, url) {
     this.seekId = 0;
     this.initProc(UI);
 
@@ -76,13 +76,13 @@ class ParseDriver {
       blob.name = "_net_"
       this.consumeFiles(UI, [blob]);
     }.bind(this));
-  },
+  }
 
   /**
    * Given a list of log Blobs, trigger chunked parsing of each in parallel via
    * `readFile`, handing off consumption to `consumeParallel`.
    */
-  consumeFiles: function(UI, files) {
+  consumeFiles(UI, files) {
     UI.searchingEnabled(false);
 
     this.files = Array.from(files);
@@ -102,7 +102,7 @@ class ParseDriver {
     Promise.all(files).then((files) => {
       this.consumeParallel(UI, files);
     });
-  },
+  }
 
   /**
    * Given a File/Blob, incrementally read chunks of it to split its contents
@@ -126,7 +126,7 @@ class ParseDriver {
    * TODO: readAsBinaryString is used which is non-standard and likely a footgun
    * for utf-8 output.
    */
-  readFile: function(UI, file, from = 0, chunk = FILE_SLICE) {
+  readFile(UI, file, from = 0, chunk = FILE_SLICE) {
     UI && UI.addToMaxProgress(file.size);
 
     file.__line_number = 0;
@@ -178,14 +178,14 @@ class ParseDriver {
     };
 
     return slice(from);
-  },
+  }
 
   /**
    * Suspiciously unused legacy function that uses `readFile` to provide lines
    * from the given offset, invoking a filter function for side-effects until
    * the filter function stops returning true and there are still lines.
    */
-  readLine: async function(file, offset, filter) {
+  async readLine(file, offset, filter) {
     file = await this.readFile(null, file, offset, FILE_SLICE);
     if (!file) {
       return;
@@ -205,7 +205,7 @@ class ParseDriver {
       increment += line.length;
     } while (filter(line.trim(), offset + increment) &&
               file.lines.length);
-  },
+  }
 
   /**
    * The primary parser driver.  An async function takes an array of the
@@ -217,7 +217,7 @@ class ParseDriver {
    * - Invokes read_more() to asynchronously get more lines whenever a file runs
    *   out of lines but hasn't reached EOF.
    */
-  consumeParallel: async function(UI, files) {
+  async consumeParallel(UI, files) {
     while (files.length) {
       // Make sure that the first line on each of the files is prepared
       // Preparation means to determine timestamp, thread name, module, if found,
@@ -285,13 +285,13 @@ class ParseDriver {
     }
 
     this.processEOS(UI);
-  },
+  }
 
   /**
    * Helper to generate a prepared line object dictionary.  Additional fields
    * are set by its exclusive caller, `consumeParallel`.
    */
-  prepareLine: function(line, previous) {
+  prepareLine(line, previous) {
     previous = previous || {};
 
     let result = this._schema.preparer.call(null, line, this._proc);
@@ -306,7 +306,7 @@ class ParseDriver {
     previous = result;
     previous.raw = line;
     return previous;
-  },
+  }
 
   /**
    * The top of the call-stack for parsing lines and processing follows used
@@ -316,7 +316,7 @@ class ParseDriver {
    * See processLine for documentation on how this method participates in the
    * logic related to `follow()` handling.
    */
-  consumeLine: function(UI, file, prepared) {
+  consumeLine(UI, file, prepared) {
     if (this.consumeLineByRules(UI, file, prepared)) {
       return;
     }
@@ -325,18 +325,18 @@ class ParseDriver {
     if (follow && !follow.follow(follow.obj, prepared.text, this._proc)) {
       delete this._proc.thread._engaged_follows[prepared.module];
     }
-  },
+  }
 
   /**
    * Gets the Bag representing the named thread for the prepared line, creating
    * it if it does not already exist.  This bag tracks active "engaged" follows
    * keyed by module, or `0` for the un-tagged case.
    */
-  ensureThread: function(file, prepared) {
+  ensureThread(file, prepared) {
     return ensure(this._proc.threads,
       file.__base_name + "|" + prepared.threadname,
       () => new Bag({ name: prepared.threadname, _engaged_follows: {} }));
-  },
+  }
 
   /**
    * Sets up the `_proc` context for the given prepared line, selects the
@@ -347,7 +347,7 @@ class ParseDriver {
    * error prone if the module was explicitly present.  If it can be inferred,
    * that makes more sense.)
    */
-  consumeLineByRules: function(UI, file, prepared) {
+  consumeLineByRules(UI, file, prepared) {
     this._proc.file = file;
     this._proc.timestamp = prepared.timestamp;
     this._proc.line = prepared.text;
@@ -367,7 +367,7 @@ class ParseDriver {
     }
 
     return false;
-  },
+  }
 
   /**
    * Wraps `processLineByRules`, adding support for `follow` that is paired with
@@ -388,7 +388,7 @@ class ParseDriver {
    *   false, and so consumeLine() invokes the current follow function, deleting
    *   it if it didn't return true (per-contract).
    */
-  processLine: function(rules, file, prepared) {
+  processLine(rules, file, prepared) {
     this._proc._pending_follow = null;
 
     if (this.processLineByRules(rules, file, prepared.text)) {
@@ -409,7 +409,7 @@ class ParseDriver {
     }
 
     return false;
-  },
+  }
 
   /**
    * Given a list of rules, a line and the file the line is from, try each rule
@@ -427,7 +427,7 @@ class ParseDriver {
    *   invokes the rule's consumer with the capture groups as its arguments and
    *   `proc` its this.  If it match, true is returned.
    */
-  processLineByRules: function(rules, file, line) {
+  processLineByRules(rules, file, line) {
     this._proc.line = line;
     let conditionResult;
     for (let rule of rules) {
@@ -464,7 +464,7 @@ class ParseDriver {
     }
 
     return false;
-  },
+  }
 
   /**
    * Given a line and a regexp belonging to the passed-in consumer, attempt to
@@ -472,7 +472,7 @@ class ParseDriver {
    * the capture groups as arguments to the consumer and `proc` passed as
    * `this`.
    */
-  processRule: function(line, regexp, consumer) {
+  processRule(line, regexp, consumer) {
     let match = line.match(regexp);
     if (!match) {
       return false;
@@ -484,5 +484,5 @@ class ParseDriver {
       throw this.exceptionParse(exception);
     }
     return true;
-  },
+  }
 }
