@@ -2,8 +2,6 @@ import { removeFromArray } from "./utils.js"
 
 const LOG = false ? (output) => { console.log(output) } : () => { };
 
-var logan = null;
-
 const GREP_REGEXP = new RegExp("((?:0x)?[A-Fa-f0-9]{4,})", "g");
 const POINTER_REGEXP = /^(?:0x)?0*([0-9A-Fa-f]+)$/;
 const NULLPTR_REGEXP = /^(?:(?:0x)?0+|\(null\)|\(nil\))$/;
@@ -15,14 +13,29 @@ const USE_RULES_TREE_OPTIMIZATION = true;
 
 let IF_RULE_INDEXER = 0;
 
+/**
+ * Returns the RegExp match object if the provided DOM File instance's name has
+ * a suffix of the form ".child-###" or ".child-###.###".  The latter form is
+ * for rotated logs as detected by `isRotateFile`.  No capture group is used.
+ */
 function isChildFile(file) {
   return file.name.match(/\.child-\d+(?:\.\d+)?$/);
 }
 
+/**
+ * Returns the RegExp match object if the provided DOM file instance's name has
+ * a suffix of the form ".###", with a capture group for the non-suffix part
+ * of the string, hereafter to be referred to as "base name".
+ */
 function isRotateFile(file) {
   return file.name.match(/^(.*)\.\d+$/);
 }
 
+/**
+ * Normalize the provided log File's name to be its base name if it's a rotate
+ * file, or just its name if it's not.  For child files, the child suffix
+ * portion will still be included.
+ */
 function rotateFileBaseName(file) {
   let baseName = isRotateFile(file);
   if (baseName) {
@@ -32,10 +45,20 @@ function rotateFileBaseName(file) {
   return file.name;
 }
 
+/**
+ * Given a string, escape all characters that are recognized as RegExp syntax
+ * with a backslash.  This is used both by convertPrintfToRegExp for logan's
+ * magic label syntax as well as the search functionality.
+ */
 function escapeRegexp(s) {
+  // "$&" means last match, so "\\$&" amounts to: put a single backslash in
+  // front of the thing that just matched.
   return s.replace(/\n$/, "").replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
 }
 
+/**
+ * Maps logan magic rule strings to regular expression capture groups.
+ */
 const printfToRegexpMap = [
   // IMPORTANT!!!
   // Use \\\ to escape regexp special characters in the match regexp (left),
@@ -51,6 +74,10 @@ const printfToRegexpMap = [
   [/%\\\*\\\$/g, "(.*$)"]
 ];
 
+/**
+ * Idempotently transform a logan magic printf style string like "Foo %p created
+ * Bar %p and read %d bytes of data." into a Regular Expression.
+ */
 function convertPrintfToRegexp(printf) {
   if (RegExp.prototype.isPrototypeOf(printf)) {
     // already converted
@@ -66,8 +93,7 @@ function convertPrintfToRegexp(printf) {
   return new RegExp('^' + printf + '$');
 }
 
-// export
-logan = {
+const logan = {
   // processing state sub-object, passed to rule consumers
   _proc: {
     _obj: function(ptr, store) {
@@ -133,11 +159,17 @@ logan = {
   _schemes: {},
   _schema: null,
 
+  /**
+   * MOVE: schema definition support code, now mootish.
+   */
   schema: function(name, preparer, builder) {
     this._schema = ensure(this._schemes, name, () => new Schema(name, preparer));
     builder(this._schema);
   },
 
+  /**
+   * Misnomer, activates the given schema.
+   */
   activeSchema: function(name) {
     this._schema = this._schemes[name];
   },
@@ -213,6 +245,12 @@ logan = {
     netdiag.reset();
   },
 
+  /**
+   * Fetch a URL as a Blob and hand off the result to `consumeFiles` to further
+   * process the logs.
+   *
+   * TODO: UI entanglements.
+   */
   consumeURL: function(UI, url) {
     this.seekId = 0;
     this.initProc(UI);
@@ -225,6 +263,10 @@ logan = {
     }.bind(this));
   },
 
+  /**
+   * Given a list of log Blobs, trigger chunked parsing of each in parallel via
+   * `readFile`, handing off consumption to `consumeParallel`.
+   */
   consumeFiles: function(UI, files) {
     UI.searchingEnabled(false);
 
@@ -247,6 +289,28 @@ logan = {
     });
   },
 
+  /**
+   * Given a File/Blob, incrementally read chunks of it to split its contents
+   * into lines (with persistence of leftovers between chunks).  A promise
+   * is returned of the form { file, lines, read_more }, where read_more is a
+   * closure that will read the next chunk of the file.  The promise will reject
+   * if there is a problem reading the string.
+   *
+   * Note that the File/Blob instances may have the following expandos set on
+   * them:
+   * - __is_child: True if `isChildFile` returned true for the file's name in
+   *   initProc().
+   * -
+   * - __line_number: Initialized to 0 here, but updated by consumeParallel.
+   * - __binary_offset: Initialize to the provided offset here, but updated by
+   *   consumeParallel.  XXX Note that this value currently fails to account for
+   *   newlines, so is unlikel to be useful for direct random access at this
+   *   time.
+   *
+   * TODO: UI entanglements.
+   * TODO: readAsBinaryString is used which is non-standard and likely a footgun
+   * for utf-8 output.
+   */
   readFile: function(UI, file, from = 0, chunk = FILE_SLICE) {
     UI && UI.addToMaxProgress(file.size);
 
@@ -301,6 +365,11 @@ logan = {
     return slice(from);
   },
 
+  /**
+   * Suspiciously unused legacy function that uses `readFile` to provide lines
+   * from the given offset, invoking a filter function for side-effects until
+   * the filter function stops returning true and there are still lines.
+   */
   readLine: async function(file, offset, filter) {
     file = await this.readFile(null, file, offset, FILE_SLICE);
     if (!file) {
@@ -323,6 +392,16 @@ logan = {
               file.lines.length);
   },
 
+  /**
+   * The primary parser driver.  An async function takes an array of the
+   * resolved-promise outputs of readFile ({ file, lines, read_more }) and does
+   * the following:
+   * - Processes a single line at a time, selecting the file whose next line
+   *   has the earliest timestamp.  (Or in the case of a tie, which can occur
+   *   due to log file rotation, pick the "earlier" field by base order.)
+   * - Invokes read_more() to asynchronously get more lines whenever a file runs
+   *   out of lines but hasn't reached EOF.
+   */
   consumeParallel: async function(UI, files) {
     while (files.length) {
       // Make sure that the first line on each of the files is prepared
@@ -393,6 +472,10 @@ logan = {
     this.processEOS(UI);
   },
 
+  /**
+   * Helper to generate a prepared line object dictionary.  Additional fields
+   * are set by its exclusive caller, `consumeParallel`.
+   */
   prepareLine: function(line, previous) {
     previous = previous || {};
 
@@ -410,6 +493,14 @@ logan = {
     return previous;
   },
 
+  /**
+   * The top of the call-stack for parsing lines and processing follows used
+   * by `consumeParallel`.  Consumes a prepared line object dictionary
+   * populated by `prepareLine` and with some additions by `consumeParallel`.
+   * 
+   * See processLine for documentation on how this method participates in the
+   * logic related to `follow()` handling.
+   */
   consumeLine: function(UI, file, prepared) {
     if (this.consumeLineByRules(UI, file, prepared)) {
       return;
@@ -421,12 +512,26 @@ logan = {
     }
   },
 
+  /**
+   * Gets the Bag representing the named thread for the prepared line, creating
+   * it if it does not already exist.  This bag tracks active "engaged" follows
+   * keyed by module, or `0` for the un-tagged case.
+   */
   ensureThread: function(file, prepared) {
     return ensure(this._proc.threads,
       file.__base_name + "|" + prepared.threadname,
       () => new Bag({ name: prepared.threadname, _engaged_follows: {} }));
   },
 
+  /**
+   * Sets up the `_proc` context for the given prepared line, selects the
+   * correct set of rules based on the module (if provided) and invokes
+   * `processLine`.  In the event the module did not exist or the module level
+   * failed to process the line `processLine` is invoked with the `unmatch`
+   * scope.  (TODO: better understand this fallback mechanism since it seems
+   * error prone if the module was explicitly present.  If it can be inferred,
+   * that makes more sense.)
+   */
   consumeLineByRules: function(UI, file, prepared) {
     this._proc.file = file;
     this._proc.timestamp = prepared.timestamp;
@@ -449,6 +554,25 @@ logan = {
     return false;
   },
 
+  /**
+   * Wraps `processLineByRules`, adding support for `follow` that is paired with
+   * logic in `consumeLine`.
+   *
+   * Follow() allows rules to handle subsequent log lines that don't explicilty
+   * match other rules.  The general operation of this is that for each line,
+   * `consumeLine()` calls `consumeLinesByRules()` which invokes this method,
+   * and 1 of 3 things happens:
+   * - A rule matches and calls follow() which results in _pending_follow being
+   *   set.  This configures _engaged_follows for both module-tagged and
+   *   non-module-tagged output.  (Presumably this covers both the situation
+   *   where multiple calls to MOZ_LOG are made versus cases where embedded
+   *   newlines are generated.)
+   * - A rule matches and does not call follow() which results in
+   *   _engaged_follows being cleared because the follow() wants to be cleared.
+   * - No rule matched, resulting in all of the calls noted above returning
+   *   false, and so consumeLine() invokes the current follow function, deleting
+   *   it if it didn't return true (per-contract).
+   */
   processLine: function(rules, file, prepared) {
     this._proc._pending_follow = null;
 
@@ -472,6 +596,22 @@ logan = {
     return false;
   },
 
+  /**
+   * Given a list of rules, a line and the file the line is from, try each rule
+   * in sequence, returning true if a rule managed to parse the line and false
+   * if no rule processed the line.
+   *
+   * The per-rule check amounts to:
+   * - If there's a `cond` check, invoke it and skip the rule if the result was
+   *   falsey.
+   * - If there's no regexp, it's assumed there was a cond (and an assertion is
+   *   thrown if not), and the rule is directly invoked with [line,
+   *   conditionResult] as its arguments list and the `proc` as its `this`.
+   *   True is then returned.
+   * - If there was a regexp, `processRule` is used which tries the RegExp and
+   *   invokes the rule's consumer with the capture groups as its arguments and
+   *   `proc` its this.  If it match, true is returned.
+   */
   processLineByRules: function(rules, file, line) {
     this._proc.line = line;
     let conditionResult;
@@ -511,6 +651,12 @@ logan = {
     return false;
   },
 
+  /**
+   * Given a line and a regexp belonging to the passed-in consumer, attempt to
+   * match the regexp.  If a match is returned, invoke the consumer, passing in
+   * the capture groups as arguments to the consumer and `proc` passed as
+   * `this`.
+   */
   processRule: function(line, regexp, consumer) {
     let match = line.match(regexp);
     if (!match) {
@@ -525,6 +671,14 @@ logan = {
     return true;
   },
 
+  /**
+   * At End-Of-Stream(?):
+   * - report any expected IPC messages that were not observed for user
+   *   awareness.
+   * - Update a bunch of UI state.
+   *
+   * TODO: UI entanglement
+   */
   processEOS: function(UI) {
     for (let sync_id in this._proc._sync) {
       let sync = this._proc._sync[sync_id];
@@ -540,6 +694,16 @@ logan = {
     UI.searchingEnabled(true);
   },
 
+  /**
+   * UI search functionality.  This almost certainly needs to have
+   * https://github.com/mayhemer/logan/commit/1cf9780472ba87cd905ceec85a69b2c29023f4f1
+   * merged/the post-commit state of that moved here or at least considered
+   * before performing any mutations.
+   *
+   * Implementation-wise, this:
+   * - Creates a parametrized matchFunc via closure.
+   * - ...needs more investigation...
+   */
   search: function(UI, className, propName, matchValue, match, seekId, coloring) {
     var matchFunc;
     propToString = (prop) => (prop === undefined ? "" : prop.toString());
@@ -633,3 +797,4 @@ logan = {
     }
   },
 }; // logan impl
+export default logan;
