@@ -142,6 +142,13 @@ const logan = {
     }
   },
 
+  /**
+   * Given the implicit argument `this.files`, interpret filenames to determine
+   * parent logs versus child logs (as about:network provides for) as well as
+   * log sequencing for auto-rotating file logs.  Generate UI warnings as
+   * byproducts and setting whether the log is believed to be e10s.  (This is
+   * potentially wrong in the case of mach-generated logs, etc.)
+   */
   initProc: function(UI) {
     this.objects = [];
     this.searchProps = {};
