@@ -94,68 +94,6 @@ function convertPrintfToRegexp(printf) {
 }
 
 const logan = {
-  // processing state sub-object, passed to rule consumers
-  _proc: {
-    _obj: function(ptr, store) {
-      if (Obj.prototype.isPrototypeOf(ptr)) {
-        return ptr;
-      }
-
-      ptr = pointerTrim(ptr);
-      if (ptr === "0") {
-        store = false;
-      }
-
-      let obj = this.objs[ptr];
-      if (!obj) {
-        obj = new Obj(ptr);
-        if (store) {
-          this.objs[ptr] = obj;
-          if (!ptr.match(POINTER_REGEXP)) {
-            logan._schema.update_alias_regexp();
-          }
-        }
-      }
-
-      obj.__most_recent_accessor = ptr;
-      return obj;
-    },
-
-    objIf: function(ptr) {
-      return this._obj(ptr, false);
-    },
-
-    obj: function(ptr) {
-      return this._obj(ptr, true);
-    },
-
-    duration: function(timestamp) {
-      if (!timestamp) {
-        return undefined;
-      }
-      return this.timestamp.getTime() - timestamp.getTime();
-    },
-
-    // private
-
-    save: function() {
-      return ["timestamp", "thread", "line", "file", "module", "raw", "binaryoffset"].reduce(
-        (result, prop) => (result[prop] = this[prop], result), {});
-    },
-
-    restore: function(from) {
-      for (let property in from) {
-        this[property] = from[property];
-      }
-    },
-
-    swap: function(through) {
-      let result = this.save();
-      this.restore(through);
-      return result;
-    }
-  },
-
   _schemes: {},
   _schema: null,
 
@@ -207,10 +145,6 @@ const logan = {
   initProc: function(UI) {
     this.objects = [];
     this.searchProps = {};
-    this._proc.global = {};
-    this._proc.captureid = 0;
-    this._proc._captures = [];
-    this._proc._sync = {};
 
     let parents = {};
     let children = {};
