@@ -1,5 +1,5 @@
 import Capture from "./capture.js";
-import { ensure, pointerTrim } from "./utils.js";
+import { POINTER_REGEXP, NULL_REGEXP, ensure, pointerTrim } from "./utils.js";
 
 function Bag(def) {
   for (let prop in def) {
@@ -18,39 +18,54 @@ Bag.prototype.on = function(prop, handler, elseHandler) {
   if (val) {
     return (this[prop] = val);
   }
-  delete this[prop];
+  // XXX asuth blind optimization: previously delete was used here, but that
+  // is historically known to transform objects into hashmaps.  That is
+  // (probably) undesirable because there is the potential for a useful shape to
+  // emerge from log rules, so converting this to consistent assignment of
+  // undefined.
+  this[prop] = undefined;
 };
 
 
-function Obj(ptr) {
-  this.id = logan.objects.length;
+function Obj(_proc, ptr) {
+  this._proc = _proc;
+  this.id = _proc.objects.length;
   // NOTE: when this list is enhanced, UI.summary has to be updated the "collect properties manually" section
   this.props = new Bag({ pointer: ptr, className: null, logid: this.id });
   this.captures = [];
-  this.file = logan._proc.file;
+  this.file = _proc.file;
+  /**
+   * List of aliases created to reference this object.  Should be a Set() or an
+   * array.
+   */
   this.aliases = {};
   this._grep = false;
   this._dispatches = {};
+
+  /**
+   * The most recent alias/ptr used to look-up this object.  Updated by
+   * ProcContext._obj() on lookup.
+   */
+  this.__most_recent_accessor = ptr;
 
   // This is used for placing the summary of the object (to generate
   // the unique ordered position, see UI.position.)
   // Otherwise there would be no other way than to use the first capture
   // that would lead to complicated duplications.
   this.placement = {
-    time: logan._proc.timestamp,
-    id: ++logan._proc.captureid,
+    time: _proc.timestamp,
+    id: ++_proc.captureid,
   };
-
-  logan.objects.push(this);
 }
 
 Obj.prototype.on = Bag.prototype.on;
 
 Obj.prototype.create = function(className, capture = true) {
   if (this.props.className) {
-    console.warn(logan.exceptionParse("object already exists, recreting automatically from scratch"));
+    console.warn(`Request to create with classname ${className} for object ` +
+      `that already has classname ${this.props.className}, re-creating.`);
     this.destroy();
-    return logan._proc.obj(this.__most_recent_accessor).create(className);
+    return this._proc.obj(this.__most_recent_accessor).create(className);
   }
 
   ensure(logan.searchProps, className, { pointer: true, state: true, logid: true });
@@ -65,7 +80,7 @@ Obj.prototype.create = function(className, capture = true) {
 };
 
 Obj.prototype.alias = function(alias) {
-  if (logan._proc.objs[alias] === this) {
+  if (this._proc.objs[alias] === this) {
     return this;
   }
 
@@ -89,26 +104,15 @@ Obj.prototype.destroy = function(ifClassName) {
     return this;
   }
 
-  delete logan._proc.objs[this.props.pointer];
-  let updateAliasRegExp = false;
-  for (let alias in this.aliases) {
-    if (!alias.match(POINTER_REGEXP)) {
-      updateAliasRegExp = true;
-    }
-    delete logan._proc.objs[alias];
-  }
-  this.prop("state", "released");
-  delete this._references;
+  this._proc._forgetObj(this);
 
-  if (updateAliasRegExp) {
-    logan._schema.update_alias_regexp();
-  }
+  this.prop("state", "released");
 
   return this.capture();
 };
 
 Obj.prototype.capture = function(what, info = null) {
-  what = what || logan._proc.raw;
+  what = what || this._proc.raw;
 
   let capture = Capture.prototype.isPrototypeOf(what) ? what : new Capture(what);
 
@@ -127,11 +131,12 @@ Obj.prototype.grep = function() {
   return this;
 };
 
+// XXX why doesn't this hook
 Obj.prototype.expect = function(format, consumer, error = () => true) {
   let match = convertPrintfToRegexp(format);
   let obj = this;
-  let thread = logan._proc.thread;
-  let rule = logan._schema.plainIf(proc => {
+  let thread = this._proc.thread;
+  let rule = this._schema.plainIf(proc => {
     if (proc.thread !== thread) {
       return false;
     }

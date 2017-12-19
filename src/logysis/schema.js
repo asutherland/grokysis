@@ -1,10 +1,19 @@
 import { ensure, pointerTrim, removeFromArray } from "./utils.js";
 
+/**
+ *
+ *
+ * @param {*} namespace
+ * @param {*} preparer 
+ */
 function Schema(namespace, preparer) {
   this.namespace = namespace;
   this.preparer = preparer;
   this.modules = {};
   this.unmatch = [];
+  /**
+   * Aggregate information to report to the UI for the given schema.
+   */
   this.ui = {
     summary: {}, // map: className -> prop to display on the summary line
   };
@@ -28,7 +37,7 @@ function Schema(namespace, preparer) {
         let pointers = state.line.match(regexp);
         if (pointers) {
           if (pointers.length === 1 && state.line.trim() == pointers[0]) {
-            // It doesn't make sense to include lines only containing the pointer.
+            // It doesn't make sense to include (lines only containing the pointer.
             // TODO the condition here should be made even smarter to filter out
             // more of just useless lines.
             break;
@@ -42,16 +51,6 @@ function Schema(namespace, preparer) {
         }
       }
     }.bind(this), () => { throw "grep() internal consumer should never be called"; });
-  };
-
-  this.update_alias_regexp = function() {
-    let nonPtrAliases = [];
-    for (let obj of Object.keys(logan._proc.objs)) {
-      if (!obj.match(POINTER_REGEXP)) {
-        nonPtrAliases.push(escapeRegexp(obj));
-      }
-    }
-    this.nonPtrAliases = nonPtrAliases.length === 0 ? null : new RegExp("(" + nonPtrAliases.join("|") + ")", "g");
   };
 }
 
@@ -75,6 +74,10 @@ Schema.prototype.removeIf = function(rule) {
   removeFromArray(item => item.id === rule.id, this.unmatch);
 }
 
+/**
+ * Defines the list of (interesting) props for the given class so that the UI
+ * can expose them.
+ */
 Schema.prototype.summaryProps = function(className, arrayOfProps) {
   this.ui.summary[className] = arrayOfProps;
 };

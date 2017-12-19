@@ -2,65 +2,10 @@ import { removeFromArray } from "./utils.js"
 
 const LOG = false ? (output) => { console.log(output) } : () => { };
 
-const GREP_REGEXP = new RegExp("((?:0x)?[A-Fa-f0-9]{4,})", "g");
-const POINTER_REGEXP = /^(?:0x)?0*([0-9A-Fa-f]+)$/;
-const NULLPTR_REGEXP = /^(?:(?:0x)?0+|\(null\)|\(nil\))$/;
-const CAPTURED_LINE_LABEL = "a log line";
-const EPOCH_1970 = new Date("1970-01-01");
-
 const FILE_SLICE = 1 * 1024 * 1024;
 const USE_RULES_TREE_OPTIMIZATION = true;
 
 let IF_RULE_INDEXER = 0;
-
-
-/**
- * Given a string, escape all characters that are recognized as RegExp syntax
- * with a backslash.  This is used both by convertPrintfToRegExp for logan's
- * magic label syntax as well as the search functionality.
- */
-function escapeRegexp(s) {
-  // "$&" means last match, so "\\$&" amounts to: put a single backslash in
-  // front of the thing that just matched.
-  return s.replace(/\n$/, "").replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-}
-
-/**
- * Maps logan magic rule strings to regular expression capture groups.
- */
-const printfToRegexpMap = [
-  // IMPORTANT!!!
-  // Use \\\ to escape regexp special characters in the match regexp (left),
-  // we escapeRegexp() the string prior to this conversion which adds
-  // a '\' before each of such chars.
-  [/%p/g, "((?:(?:0x)?[A-Fa-f0-9]+)|(?:\\(null\\))|(?:\\(nil\\)))"],
-  [/%d/g, "(-?[\\d]+)"],
-  [/%h?u/g, "([\\d]+)"],
-  [/%s/g, "([^\\s]*)"],
-  [/%\\\*s/g, "(.*)"],
-  [/%\d*[xX]/g, "((?:0x)?[A-Fa-f0-9]+)"],
-  [/%(?:\d+\\\.\d+)?f/g, "((?:[\\d]+)\.(?:[\\d]+))"],
-  [/%\\\*\\\$/g, "(.*$)"]
-];
-
-/**
- * Idempotently transform a logan magic printf style string like "Foo %p created
- * Bar %p and read %d bytes of data." into a Regular Expression.
- */
-function convertPrintfToRegexp(printf) {
-  if (RegExp.prototype.isPrototypeOf(printf)) {
-    // already converted
-    return printf;
-  }
-
-  printf = escapeRegexp(printf);
-
-  for (let [source, target] of printfToRegexpMap) {
-    printf = printf.replace(source, target);
-  }
-
-  return new RegExp('^' + printf + '$');
-}
 
 const logan = {
   _schemes: {},

@@ -5,5 +5,11 @@
  * call.
  */
 export default class ParseProgress {
-  constructor()
+  constructor() {
+
+  }
+
+  exception(msg) {
+    console.warn(msg);
+  }
 }

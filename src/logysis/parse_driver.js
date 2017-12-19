@@ -1,3 +1,5 @@
+import ProcContext from "./proc_context.js";
+
 /**
  * Returns the RegExp match object if the provided DOM File instance's name has
  * a suffix of the form ".child-###" or ".child-###.###".  The latter form is
@@ -56,6 +58,7 @@ function analyzeAndWrapFiles(rawFiles, parseProgress) {
       isChild,
       baseOrder: update(isChild ? children : parents, baseName)
     };
+  });
 
   const numParents = Object.keys(parents).length;
   const numChildren = Object.keys(children).length;
@@ -74,7 +77,7 @@ function analyzeAndWrapFiles(rawFiles, parseProgress) {
  */
 class ParseDriver {
   /**
-   * 
+   *
    * @param schemas
    *   Schema map.
    * @param {File[]} rawFiles
@@ -85,9 +88,19 @@ class ParseDriver {
    *   UI.
    */
   constructors({ schemas, rawFiles, parseProgress }) {
+    // Processing context to hold all the state derived from the parse as well
+    // as transient state tracking.
+    this._proc = new ProcContext({ parseProgress });
 
+    // XXX State that is no longer tracked here, but other code hasn't
+    // realized yet:
+    // - seekId: Used by the UI and logan.js search mechanism.
+    // - searchProps: same deal.
   }
 
+  /**
+   * Error instance construction helper that attempts to capture parse state.
+   */
   exceptionParse(exception) {
     if (typeof exception === "object") {
       exception = "'" + exception.message + "' at " + exception.fileName + ":" + exception.lineNumber
@@ -105,13 +118,7 @@ class ParseDriver {
    * potentially wrong in the case of mach-generated logs, etc.)
    */
   initProc(UI) {
-    this.objects = [];
-    this.searchProps = {};
 
-
-    this._proc._ipc = parents == 1 && children > 0;
-    this._proc.threads = {};
-    this._proc.objs = {};
 
     netdiag.reset();
   }
@@ -123,7 +130,6 @@ class ParseDriver {
    * TODO: UI entanglements.
    */
   consumeURL(UI, url) {
-    this.seekId = 0;
     this.initProc(UI);
 
     fetch(url, { mode: 'cors', credentials: 'omit', }).then(function(response) {
@@ -142,7 +148,6 @@ class ParseDriver {
     UI.searchingEnabled(false);
 
     this.files = Array.from(files);
-    this.seekId = 0;
     this.initProc(UI);
 
     UI.resetProgress();
