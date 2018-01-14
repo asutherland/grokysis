@@ -1,8 +1,7 @@
-import { removeFromArray } from "./utils.js"
+import { removeFromArray } from "./logysis/utils.js"
 
 const LOG = false ? (output) => { console.log(output) } : () => { };
 
-const FILE_SLICE = 1 * 1024 * 1024;
 const USE_RULES_TREE_OPTIMIZATION = true;
 
 let IF_RULE_INDEXER = 0;
@@ -44,29 +43,6 @@ const logan = {
     for (let schema of Object.values(this._schemes)) {
       schema._finalize();
     }
-  },
-
-  /**
-   * At End-Of-Stream(?):
-   * - report any expected IPC messages that were not observed for user
-   *   awareness.
-   * - Update a bunch of UI state.
-   *
-   * TODO: UI entanglement
-   */
-  processEOS: function(UI) {
-    for (let sync_id in this._proc._sync) {
-      let sync = this._proc._sync[sync_id];
-      if (sync.receiver) {
-        UI.warn("Missing some IPC synchronization points fulfillment, check web console");
-        console.log(`file ${sync.proc.file.name} '${sync.proc.raw}', never received '${sync_id}'`);
-      }
-    }
-
-    UI.loadProgress(0);
-    UI.fillClassNames(this.searchProps);
-    UI.fillSearchBy();
-    UI.searchingEnabled(true);
   },
 
   /**

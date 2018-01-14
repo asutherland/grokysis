@@ -13,6 +13,10 @@ export default class ProcContext {
     this.global = {};
     this.captureid = 0;
     this._captures = [];
+
+    /**
+     *
+     */
     this._sync = {};
 
     // XXX Legacy-ish: Previously, this value would be set based on whether
@@ -69,6 +73,12 @@ export default class ProcContext {
     this.nonPtrAliases = nonPtrAliases.length === 0 ? null : new RegExp("(" + nonPtrAliases.join("|") + ")", "g");
   };
 
+
+  /**
+   * Look-up an existing Obj instance by the given ptr alias-ish thing,
+   * optionally creating the Obj if `store` is true if there exists no mapping
+   * for the given ptr.
+   */
   _obj(ptr, store) {
     if (Obj.prototype.isPrototypeOf(ptr)) {
       return ptr;
@@ -93,6 +103,18 @@ export default class ProcContext {
 
     obj.__most_recent_accessor = ptr;
     return obj;
+  }
+
+  /**
+   * Helper for use by Obj.alias to add an alias mapping to `objs` and update
+   * the derived alias regexp.
+   */
+  _addAlias(obj, alias) {
+    this.objs[alias] = this;
+
+    if (!alias.match(POINTER_REGEXP)) {
+      this._update_alias_regexp();
+    }
   }
 
   _forgetObj(obj) {

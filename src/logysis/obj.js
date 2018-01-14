@@ -68,7 +68,7 @@ Obj.prototype.create = function(className, capture = true) {
     return this._proc.obj(this.__most_recent_accessor).create(className);
   }
 
-  ensure(logan.searchProps, className, { pointer: true, state: true, logid: true });
+  ensure(this.searchProps, className, { pointer: true, state: true, logid: true });
 
   this.props.className = className;
   this.prop("state", "created");
@@ -89,12 +89,8 @@ Obj.prototype.alias = function(alias) {
   }
 
   alias = pointerTrim(alias);
-  logan._proc.objs[alias] = this;
+  this._proc._addAlias(this, alias);
   this.aliases[alias] = true;
-
-  if (!alias.match(POINTER_REGEXP)) {
-    logan._schema.update_alias_regexp();
-  }
 
   return this;
 };
@@ -131,7 +127,9 @@ Obj.prototype.grep = function() {
   return this;
 };
 
-// XXX why doesn't this hook
+// TODO: Consider removing the dynamism here in favor of somewhat more explicit
+// handling in the ParseDriver so the general parse logic flow can be understood
+// from just that file.
 Obj.prototype.expect = function(format, consumer, error = () => true) {
   let match = convertPrintfToRegexp(format);
   let obj = this;
@@ -154,6 +152,9 @@ Obj.prototype.expect = function(format, consumer, error = () => true) {
   return this;
 };
 
+// TODO: Similar to expect, this has a bit more dynamism than is strictly,
+// required, especially given there is already explicit follow support in the
+// parsing logic.
 Obj.prototype.follow = function(cond, consumer, error = () => true) {
   let capture = {
     obj: this,
@@ -312,10 +313,10 @@ Obj.prototype.send = function(message) {
   };
 
   let id = message + "::" + this.ipc_id;
-  let sync = logan._proc._sync[id];
+  let sync = this._proc._sync[id];
 
   if (!sync) {
-    logan._proc._sync[id] = create();
+    this._proc._sync[id] = create();
     return this;
   }
 
@@ -327,20 +328,20 @@ Obj.prototype.send = function(message) {
     return this;
   }
 
-  delete logan._proc._sync[id];
+  delete this._proc._sync[id];
 
-  LOG(" send() calling on stored recv() " + logan._proc.line + " ipcid=" + this.ipc_id);
+  LOG(" send() calling on stored recv() " + this._proc.line + " ipcid=" + this.ipc_id);
 
-  let proc = logan._proc.swap(sync.proc);
-  logan._proc.file.__recv_wait = false;
+  let proc = this._proc.swap(sync.proc);
+  this._proc.file.__recv_wait = false;
   sync.func(sync.receiver, this);
-  logan._proc.restore(proc);
+  this._proc.restore(proc);
 
   return this;
 },
 
 Obj.prototype.recv = function(message, func = () => {}) {
-  if (!logan._proc._ipc) {
+  if (!this._proc._ipc) {
     return this;
   }
 
@@ -350,30 +351,30 @@ Obj.prototype.recv = function(message, func = () => {}) {
 
   let id = message + "::" + this.ipc_id;
 
-  let sync = logan._proc._sync[id];
+  let sync = this._proc._sync[id];
   if (!sync) {
     // There was no send() call for this ipcid and message, hence
     // we have to wait.  Store the recv() info and proccessing state
     // and stop parsing this file.
-    logan._proc._sync[id] = {
+    this._proc._sync[id] = {
       func: func,
       receiver: this,
-      proc: logan._proc.save(),
+      proc: this._proc.save(),
     };
 
-    logan._proc.file.__recv_wait = true;
+    this._proc.file.__recv_wait = true;
 
-    LOG(" blocking and storing recv() " + logan._proc.line + " ipcid=" + this.ipc_id + " file=" + logan._proc.file.name);
+    LOG(" blocking and storing recv() " + this._proc.line + " ipcid=" + this.ipc_id + " file=" + this._proc.file.name);
     return this;
   }
 
   if (sync.next) {
-    logan._proc._sync[id] = sync.next;
+    this._proc._sync[id] = sync.next;
   } else {
-    delete logan._proc._sync[id];
+    delete this._proc._sync[id];
   }
 
-  LOG(" recv() taking stored send() " + logan._proc.line + " ipcid=" + this.ipc_id);
+  LOG(" recv() taking stored send() " + this._proc.line + " ipcid=" + this.ipc_id);
 
   this.capture({ run: sync.origin });
   func(this, sync.sender);
