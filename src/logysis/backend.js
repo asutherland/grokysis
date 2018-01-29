@@ -1,4 +1,4 @@
-class BackendRouter() {
+class BackendRouter {
   constructor() {
     self.addEventListener("message", this._onMessage.bind(this));
   }

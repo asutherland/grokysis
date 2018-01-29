@@ -21,6 +21,22 @@ module.exports = {
       name: 'common' // Specify the common bundle's name.
     })
   ],
+  module: {
+    rules: [
+      {
+        test: /\.js[x]?$/,
+        exclude: /node_modules/,
+        loader: 'babel-loader'
+      },
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          'css-loader'
+        ]
+      },
+    ]
+  },
   output: {
     filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'dist')

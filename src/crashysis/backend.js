@@ -1,7 +1,7 @@
 
 import CrashDB from "./crash_db";
 
-class BackendRouter() {
+class BackendRouter {
   constructor() {
     this.name = "";
     this.db =

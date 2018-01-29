@@ -27,7 +27,7 @@ function fetchAccept(url, contentType) {
     url,
     {
       headers: {
-        'Content-Type': contentType
+        'Accept': contentType
       }
     });
 }
@@ -40,8 +40,12 @@ function fetchJson(url) {
 
 const parseSourceToJsonable = require('./src/server-hacks/treesit-dump.js');
 
+const normalizeSearchResults =
+  require('./src/server-hacks/normalize_search_results.js');
+
 const SEARCHFOX_BASE = 'https://searchfox.org';
 const SEARCHFOX_TREE_BASE = `${SEARCHFOX_BASE}/mozilla-central`;
+const SEARCHFOX_SEARCH_URL = `${SEARCHFOX_TREE_BASE}/search`;
 
 const HG_BASE = 'https://hg.mozilla.org'
 const HG_TREE_BASE = `${HG_BASE}/mozilla-central`;
@@ -105,6 +109,26 @@ app.get(/^\/sf\/spage\/(.+)$/, async function (req, res) {
     ast,
     astError
   });
+});
+
+app.get('/sf/search', async function(req, res) {
+  // Use a regexp to grab the unprocessed query params off the end so we can
+  // quote them verbatim.
+  const match = /\?(.+)$/.exec(req.originalUrl);
+  if (!match) {
+    res.sendStatus(400);
+    return;
+  }
+  const url = `${SEARCHFOX_SEARCH_URL}?${match[1]}`;
+
+  // Obviously, we could stream the returned JSON as just straight-up bytes, but
+  // we're also doing a little bit of normalizing here in the interests of
+  // showing how we could improved the data returned by searchfox.  (Especially
+  // when moving the search logic from python to rust.)
+  const jsonResp = await fetchJson(url);
+  const rawObj = await jsonResp.json();
+  const normalized = normalizeSearchResults(rawObj);
+  res.json(normalized);
 });
 
 // Serve the files on port 3000.

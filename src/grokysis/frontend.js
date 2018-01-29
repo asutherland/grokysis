@@ -1,4 +1,4 @@
-import BackendWorker from 'worker-loader!./backend.js';
+import makeBackend from './backend.js';
 
 class GrokAnalysisFrontend {
   /**
@@ -8,8 +8,10 @@ class GrokAnalysisFrontend {
    */
   constructor(name) {
     this.name = name;
-    this._worker = new BackendWorker();
-    this._worker.addEventListener("message", this._onMessage.bind(this));
+    const { backend, useAsPort } = makeBackend();
+    this._backend = backend; // the direct destructuring syntax is confusing.
+    this._port = useAsPort;
+    this._port.addEventListener("message", this._onMessage.bind(this));
 
     this._awaitingReplies = new Map();
     this._nextMsgId = 1;
@@ -21,7 +23,31 @@ class GrokAnalysisFrontend {
   }
 
   _onMessage(evt) {
+    const data = evt.data;
+    const { type, msgId, payload } = data;
 
+    // -- Replies
+    if (type === "reply") {
+      if (!this._awaitingReplies.has(msgId)) {
+        console.warn("Got reply without map entry:", data, "ignoring.");
+        return;
+      }
+      const { resolve, reject } = this._awaitingReplies.get(msgId);
+      if (data.success) {
+        resolve(payload);
+      } else {
+        reject(payload);
+      }
+      return;
+    }
+
+    // -- Everything else, none of which can be expecting a reply.
+    const handlerName = "msg_" + type;
+    try {
+      this[handlerName](payload);
+    } catch(ex) {
+      console.error(`Problem processing message of type ${type}:`, data, ex);
+    }
   }
 
   _sendNoReply(payload) {
@@ -31,18 +57,20 @@ class GrokAnalysisFrontend {
     });
   }
 
-  _sendAndAwaitReply(payload) {
+  _sendAndAwaitReply(type, payload) {
+    const msgId = this._nextMsgId++;
     this._worker.postMessage({
-      msgId: this._nextMsgId++,
+      type,
+      msgId,
       payload
+    });
+
+    return new Promise((resolve, reject) => {
+      this._awaitingReplies.set(msgId, { resolve, reject });
     });
   }
 
-  createSession() {
-
-  }
-
-  async loadSession(sessionName) {
+  async performSearch(searchStr) {
 
   }
 }

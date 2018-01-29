@@ -47,4 +47,4 @@ class LogAnalysisFrontend {
   }
 }
 
-export default CrashAnalysisFrontend;
+export default LogAnalysisFrontend;
