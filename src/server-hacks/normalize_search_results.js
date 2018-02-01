@@ -33,6 +33,66 @@
  */
 function normalizeSearchResults(orig) {
 
+  // Helper to partition the contents of a hitList into two separate hitLists.
+  // Our motivating example is separating forward declarations from normal
+  // declarations because forward declarations are boring 99% of the time.
+  //
+  // Each hitList is an array of objects of the form { path, lines } where each
+  // `lines` instance is an array of `lineObj` objects of the form { lno, line,
+  // contextsym, bounds, context }.  We want to traverse through each of the
+  // `lineObj`s to see if the function returns true, and if so, split the
+  // lineObj from its siblings
+  function filterHitList(hitList, entry, falseKey, trueKey, func) {
+    let topHits = [];
+    let topMisses = [];
+    for (const pathLines of hitList) {
+      // Build up a list of the hits and misses for this pathLine aggregate.
+      let hits;
+      let misses;
+      for (const lineObj of pathLines.lines) {
+        let match = func(lineObj);
+        if (match) {
+          if (!hits) {
+            hits = [lineObj];
+          } else {
+            hits.push(lineObj);
+          }
+        } else {
+          if (!misses) {
+            misses = [lineObj];
+          } else {
+            misses.push(lineObj);
+          }
+        }
+      }
+
+      // All hits, no misses, we can reuse the pathLines object in its entirety.
+      if (hits && !misses) {
+        topHits.push(pathLines);
+      // Both hits and misses, need to use our split lists.
+      } else if (hits && misses) {
+        topHits.push({
+          path: pathLines.path,
+          lines: hits
+        });
+        topMisses.push({
+          path: pathLines.path,
+          lines: misses
+        });
+      // Only misses, we can reuse the pathLines objects in its entirety.
+      } else {
+        topMisses.push(pathLines);
+      }
+    }
+
+    if (topHits.length) {
+      entry[trueKey] = topHits;
+    }
+    if (topMisses.length) {
+      entry[falseKey] = topMisses;
+    }
+  }
+
   function stashSymbolInfo(map, symbol, kind, hitList) {
     let entry = map[symbol];
     if (!entry) {
@@ -47,14 +107,27 @@ function normalizeSearchResults(orig) {
       map[symbol] = entry;
     }
 
-    entry[kind] = hitList;
-/*
-    let list = entry[kind];
-    if (!list) {
-      list = [];
-      entry[kind] = list;
+    switch (kind) {
+      case "decls":
+        filterHitList(
+          hitList, entry, "decls", "forwards",
+          (lineObj) => {
+            return /^(?:class|struct) [^{]+;$/.test(lineObj.line);
+          });
+        break;
+
+      case "defs":
+        filterHitList(
+          hitList, entry, "defs", "typedefs",
+          (lineObj) => {
+            return /^typedef [^{]+;$/.test(lineObj.line);
+          });
+        break;
+
+      default:
+        entry[kind] = hitList;
+        break;
     }
-*/
   }
 
 
