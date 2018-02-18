@@ -17,6 +17,18 @@
  *     filter if the facet is already being filtered on.  Facets latch their
  *     state and do not re-compute once they are made an active participant in
  *     filtering.
+ *
+ * The "raw" SearchResults have a degree of pre-faceting applied to them.  For
+ * simplicity, we map these onto our faceting implementation like we had done
+ * this ourselves.
+ *
+ * ### Faceting Representation ###
+ *
+ * We use plain-old-javascript-object representations for each layer of
+ * faceting.  If you want fancy extra data for a symbol, you can hand the object
+ * to the KnowledgeBase object and ask it.
+ *
+ *
  */
 export default class FilteredResults {
   constructor({ searchResults, knowledgeBase, ctx }) {
@@ -37,14 +49,25 @@ export default class FilteredResults {
 
     // The current set of data that matches all current filters.
     this.currentData = null;
-    // The last state of our data before
-    this.lastData
     this.lastFacetFamily = null;
 
     this.filterStack = [];
+
+    this._fullRebuild();
   }
 
+  /**
+   *
+   */
   async _fullRebuild() {
+
+  }
+
+  /**
+   * Given a list of hierarchical data roots and a filter predicate, recursively
+   * apply the filter predicate
+   */
+  async _applyFilter(roots, filter) {
 
   }
 
@@ -56,6 +79,9 @@ export default class FilteredResults {
 
   }
 
+  /**
+   * Ignore any
+   */
   ignorePathPrefix(path) {
     return this._pushFilter({
       facetFamily: null,

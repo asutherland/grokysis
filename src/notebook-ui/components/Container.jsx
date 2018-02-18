@@ -21,9 +21,10 @@ export default class NotebookContainer extends React.Component {
       sheetIds: [],
       nextId: 1
     };
+  }
 
-    // populate the initial set of sheets.  This might make more sense in
-    // componentDidMount.
+  componentDidMount() {
+    // populate the initial set of sheets.
     if (this.props.initialSheets) {
       for (let sheetDef of this.props.initialSheets) {
         this.addSheet(null, sheetDef);
@@ -78,7 +79,7 @@ export default class NotebookContainer extends React.Component {
 
       const newId = prevState.nextId;
       const newSheets = prevState.sheets.concat();
-      const newSheetIds = prevStte.sheetIds.concat();
+      const newSheetIds = prevState.sheetIds.concat();
 
       // curry the sheet id.
       const boundAddSheet = this.addSheet.bind(this, newId);
@@ -86,6 +87,8 @@ export default class NotebookContainer extends React.Component {
 
       const newSheet = (
         <NotebookSheet
+          { ...this.props.passProps }
+          key={ newId }
           label={ label }
           contentPromise={ awaitContent }
           contentFactory={ contentFactory }

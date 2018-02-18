@@ -23,13 +23,30 @@
  * Our current normalization is to re-group so that we have a hierarchy like
  * so [fileType, source, :
  * - "normal"/"test"/"generated"
- *   - "files"
- *   - "fulltext"
+ *   - "files": List of String paths.
+ *   - "fulltext": List of PathLines objects, defined below.
  *   - "semantic"
  *     - SYMBOL
- *       - "defs"/"decls"/"uses"/"assignments"/"idl"/"forwards"
+ *       - "defs"/"decls"/"uses"/"assignments"/"idl"/"forwards": List of
+ *         PathLine objects, defined below.
  *
- * This logic is derived from
+ * Except for files, each result bin is an array of PathLines objects with the
+ * form { path: "foo/bar/baz", lines: [LineResults...]} where LineResults is
+ * an array where each object has the fields:
+ * - lno: One-based line number the line is/would be found on.
+ * - line: Single line of the declaration/use, sans newline.  See peekLines for
+ *   full multi-line excerpts.
+ * - bounds: Array of the form [startIndex, endIndex) that describes where the
+ *   symbol is found in the `line` excerpt.
+ * - contextsym: The raw, mangled symbol that this def/decl/use was found
+ *   within.  So for a method on a class's declaration, it's the class.  (But
+ *   not for the def, which will have a contextsym of "".)  For a function call
+ *   use, it's the method making the call.
+ * - context: The pretty, un-mangled version of contextsym.
+ * - peekLines: optionally present, newline-delimited excerpt of the entire
+ *   definition which includes any preceding comment block.
+ *
+ * This logic is derived from my original graphviz efforts and could be cleaner.
  */
 function normalizeSearchResults(orig) {
 
@@ -161,7 +178,7 @@ function normalizeSearchResults(orig) {
           break;
         case "l": // "Files"
           filesList = [];
-          for (const { path } of obj) {
+          for (const { path } of value) {
             filesList.push(path);
           }
           filesList.sort();

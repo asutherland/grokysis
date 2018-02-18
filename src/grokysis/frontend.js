@@ -1,5 +1,8 @@
 import makeBackend from './backend.js';
 
+import SearchResults from './frontend/search_results.js';
+import FilteredResults from './frontend/filtered_results.js';
+
 class GrokAnalysisFrontend {
   /**
    * The frontend name determines the root IndexedDB database name used.
@@ -51,7 +54,7 @@ class GrokAnalysisFrontend {
   }
 
   _sendNoReply(payload) {
-    this._worker.postMessage({
+    this._port.postMessage({
       msgId: 0,
       payload
     });
@@ -59,7 +62,7 @@ class GrokAnalysisFrontend {
 
   _sendAndAwaitReply(type, payload) {
     const msgId = this._nextMsgId++;
-    this._worker.postMessage({
+    this._port.postMessage({
       type,
       msgId,
       payload
@@ -71,7 +74,14 @@ class GrokAnalysisFrontend {
   }
 
   async performSearch(searchStr) {
-
+    const wireResults = await this._sendAndAwaitReply(
+      "search",
+      {
+        searchStr
+      });
+    const rawResults = new SearchResults(wireResults);
+    const filtered = new FilteredResults({ searchResults: [rawResults] });
+    return filtered;
   }
 }
 

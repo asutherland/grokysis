@@ -29,10 +29,10 @@ export default class NotebookSheet extends React.Component {
     this._init(props.contentPromise);
   }
 
-  async _init(contetPromise) {
+  async _init(contentPromise) {
     const contentData = await contentPromise;
 
-    const renderedContent = this.contentFactory(this.props, contentData);
+    const renderedContent = this.props.contentFactory(this.props, contentData);
     this.setState({ renderedContent });
   }
 

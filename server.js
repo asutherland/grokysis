@@ -137,5 +137,5 @@ app.listen(3000, function () {
 });
 
 process.on('unhandledRejection', error => {
-  console.error('unhandledRejection', error.message);
+  console.error('unhandledRejection', error);
 });

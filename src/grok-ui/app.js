@@ -36,7 +36,9 @@ class GrokApp extends React.Component {
   render() {
     return (
       <NotebookContainer
+        passProps= { { grokCtx: this.state.grokCtx } }
         grokCtx={ this.state.grokCtx }
+        initialSheets={ this.state.initialSheets }
         />
     );
   }
