@@ -2,6 +2,8 @@ import React from 'react';
 
 import NotebookSheet from './Sheet.jsx';
 
+import './Container.css';
+
 /**
  * A notebook container is full of NotebookSheet instances that wrap specific
  * widgets provided by the owner of the notebook so that they can be collapsed
@@ -39,7 +41,7 @@ export default class NotebookContainer extends React.Component {
    * to insert sheets before/after the invoking sheet's position in the sheet
    * list.
    *
-   * @param label
+   * @param labelWidget
    *   React payload to display as the sheet's label.  This is passed as-is to
    *   the sheet's render method from the get-go.
    * @param [awaitContent]
@@ -60,7 +62,8 @@ export default class NotebookContainer extends React.Component {
    * @param [permanent=false]
    *    If true, the sheet shouldn't be removable.
    */
-  addSheet(relId, { label, awaitContent, contentFactory, position, permanent }) {
+  addSheet(relId, { labelWidget, awaitContent, contentFactory, position,
+                    permanent }) {
     this.setState((prevState, props) => {
       // - Determine where to insert the sheet.
       let targetIdx;
@@ -89,7 +92,7 @@ export default class NotebookContainer extends React.Component {
         <NotebookSheet
           { ...this.props.passProps }
           key={ newId }
-          label={ label }
+          labelWidget={ labelWidget }
           contentPromise={ awaitContent }
           contentFactory={ contentFactory }
           addSheet={ boundAddSheet }

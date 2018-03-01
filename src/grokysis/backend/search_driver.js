@@ -11,10 +11,17 @@ const HACKY_SERVER_SOURCE_BASE = `${HACKY_SERVER_BASE}/sf/spage/`;
  */
 export default class SearchDriver {
   constructor({ treeName }) {
-
+    // XXX hacky server means we don't pay attention to the tree.
   }
 
-  async performSearch(searchArgs) {
-
+  async performSearch({ searchStr }) {
+    const params = new URLSearchParams();
+    params.set('q', searchStr);
+    params.set('case', 'false');
+    params.set('regexp', 'false');
+    params.set('path', '');
+    const resp = await fetch(`${HACKY_SERVER_SEARCH}?${params.toString()}`);
+    const result = await resp.json();
+    return result;
   }
 }

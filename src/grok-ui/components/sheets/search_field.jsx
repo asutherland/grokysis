@@ -26,7 +26,8 @@ export default class SearchFieldSheet extends React.Component {
     const pendingResults = this.props.grokCtx.performSearch(searchText);
 
     this.props.addSheet({
-      label: <span>Search Results: <i>{searchText}</i></span>,
+      position: 'after',
+      labelWidget: <span>Search Results: <i>{searchText}</i></span>,
       // This will make the sheet display a loading indication until the search
       // completes.
       awaitContent: pendingResults,
@@ -46,9 +47,9 @@ export default class SearchFieldSheet extends React.Component {
     return (
       <form onSubmit={this.handleSubmit}>
         <label>
-          Search for:
+          Search for:&nbsp;
           <input type="text" ref={(input) => this.input = input} />
-        </label>
+        </label>&nbsp;
         <input type="submit" value="Search" />
       </form>
     );

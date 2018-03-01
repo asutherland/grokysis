@@ -1,0 +1,21 @@
+.lineHit {
+  font-family: monospace;
+}
+
+.lineHit__lineNo {
+  display: inline-block;
+  color: gray;
+  min-width: 3rem;
+  text-align: right;
+  margin-right: 0.5rem;
+}
+
+.lineHit__lineContents {
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+.lineHit__lineContext {
+  display: inline-block;
+  color: mediumseagreen;
+}

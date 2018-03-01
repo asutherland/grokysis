@@ -23,7 +23,7 @@ class GrokApp extends React.Component {
       grokCtx,
       initialSheets: [
         {
-          label: 'Searchfox Search',
+          labelWidget: 'Searchfox Search',
           awaitContent: null,
           contentFactory: (props) => {
             return <SearchFieldSheet {...props} />;

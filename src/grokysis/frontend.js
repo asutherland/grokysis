@@ -1,6 +1,6 @@
 import makeBackend from './backend.js';
 
-import SearchResults from './frontend/search_results.js';
+import RawSearchResults from './frontend/raw_search_results.js';
 import FilteredResults from './frontend/filtered_results.js';
 
 class GrokAnalysisFrontend {
@@ -15,14 +15,16 @@ class GrokAnalysisFrontend {
     this._backend = backend; // the direct destructuring syntax is confusing.
     this._port = useAsPort;
     this._port.addEventListener("message", this._onMessage.bind(this));
+    this._port.start();
 
     this._awaitingReplies = new Map();
     this._nextMsgId = 1;
 
-    this._sendNoReply({
-      type: "init",
-      name
-    });
+    this._sendNoReply(
+      "init",
+      {
+        name
+      });
   }
 
   _onMessage(evt) {
@@ -35,6 +37,7 @@ class GrokAnalysisFrontend {
         console.warn("Got reply without map entry:", data, "ignoring.");
         return;
       }
+      console.log("reply", msgId, type, payload);
       const { resolve, reject } = this._awaitingReplies.get(msgId);
       if (data.success) {
         resolve(payload);
@@ -53,8 +56,9 @@ class GrokAnalysisFrontend {
     }
   }
 
-  _sendNoReply(payload) {
+  _sendNoReply(type, payload) {
     this._port.postMessage({
+      type,
       msgId: 0,
       payload
     });
@@ -62,6 +66,7 @@ class GrokAnalysisFrontend {
 
   _sendAndAwaitReply(type, payload) {
     const msgId = this._nextMsgId++;
+    console.log("request", msgId, type, payload);
     this._port.postMessage({
       type,
       msgId,
@@ -79,8 +84,8 @@ class GrokAnalysisFrontend {
       {
         searchStr
       });
-    const rawResults = new SearchResults(wireResults);
-    const filtered = new FilteredResults({ searchResults: [rawResults] });
+    const rawResults = new RawSearchResults(wireResults);
+    const filtered = new FilteredResults({ rawResultsList: [rawResults] });
     return filtered;
   }
 }

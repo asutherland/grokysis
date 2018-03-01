@@ -1,0 +1,52 @@
+.hitDict {
+  margin-top: 0.2rem;
+}
+
+.hitDict__tabs {
+  display: block;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hitDict__tab {
+  display: inline-block;
+  text-align: center;
+  border: 1px solid gray;
+  border-bottom: none;
+  padding: 0.2rem;
+  margin-right: 0.1rem;
+}
+
+.hitDict__tabLabel {
+}
+/* trick from https://jsfiddle.net/85LbG/ referred to in multiple stackoverflow
+   answers on the question of using after to create a synthetic, hidden sizing
+   element */
+.hitDict__tabLabel::after {
+  display: block;
+  content: attr(title);
+  font-weight: bold;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.hitDict__tab--selected {
+  border: 1px solid black;
+  /* uh, ugly hack to override the contents' border to we look continuous.  Do
+    we actually want to be using grid for something like this? */
+  border-bottom: 1px solid white;
+  margin-bottom: -1px;
+}
+
+.hitDict__tabLabel--selected {
+  font-weight: bold;
+}
+
+.hitDict__contents {
+  border: 1px solid black;
+  padding: 0.2rem;
+  overflow: auto;
+  max-height: 80vh;
+}

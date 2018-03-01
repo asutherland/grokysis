@@ -1,5 +1,7 @@
 import React from 'react';
 
+import './Sheet.css';
+
 /**
  * NotebookSheets live inside a NotebookContainer.  They wrap the provided
  * content widget in a consistent UI container that provides for labeling and
@@ -7,7 +9,7 @@ import React from 'react';
  * re-ordering and persistence.
  *
  * Expected props:
- * - label: Always visible widget that, when clicked on, toggles the
+ * - labelWidget: Always visible widget that, when clicked on, toggles the
  *   collapse state of the sheet.
  * - contentPromise
  * - contentFactory: The factory method to be invoked when contentPromise is
@@ -26,6 +28,8 @@ export default class NotebookSheet extends React.Component {
       renderedContent: <i>Loading...</i>
     };
 
+    this.onToggleCollapsed = this.onToggleCollapsed.bind(this);
+
     this._init(props.contentPromise);
   }
 
@@ -36,29 +40,37 @@ export default class NotebookSheet extends React.Component {
     this.setState({ renderedContent });
   }
 
+  onToggleCollapsed() {
+    this.setState((prevState) => ({
+      collapsed: !prevState.collapsed
+    }));
+  }
+
   render() {
-    let labelClass = "notebook-label";
+    let labelClass = "notebookSheet__label";
     if (this.state.collapsed) {
-      labelClass += " notebook-label-collapsed";
+      labelClass += " notebookSheet__label--collapsed";
     } else {
-      labelClass += " notebook-label-expanded";
+      labelClass += " notebookSheet__label--expanded";
     }
 
     let content = null;
     if (!this.state.collapsed) {
       content = (
-        <div className="notebook-sheet-content">
-          { this.props.contentWidget }
+        <div className="notebookSheet__content" >
+          { this.state.renderedContent }
         </div>
       );
     }
 
     return (
-      <div className="notebook-sheet">
-        <div className={labelClass}>
+      <div className="notebookSheet">
+        <div className={ labelClass }
+             onClick={ this.onToggleCollapsed }
+             >
           { this.props.labelWidget }
         </div>
-        { this.state.renderedContent }
+        { content }
       </div>
     );
   }

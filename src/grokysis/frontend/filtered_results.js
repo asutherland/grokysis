@@ -1,3 +1,5 @@
+import EE from 'eventemitter3';
+
 /**
  * Consumes one or more immutable SearchResults instances for user-interactive
  * iterative filtering and faceting.
@@ -24,14 +26,13 @@
  *
  * ### Faceting Representation ###
  *
- * We use plain-old-javascript-object representations for each layer of
- * faceting.  If you want fancy extra data for a symbol, you can hand the object
- * to the KnowledgeBase object and ask it.
  *
  *
  */
-export default class FilteredResults {
-  constructor({ searchResults, knowledgeBase, ctx }) {
+export default class FilteredResults extends EE {
+  constructor({ rawResultsList, knowledgeBase, ctx }) {
+    super();
+
     // Every time a mutation happens, we bump the serial.  serial is the current
     // serial, describing the state of the data.  There's no need to poll on
     // this or anything silly.  Promises are returned by all mutating
@@ -45,7 +46,7 @@ export default class FilteredResults {
     this.ctx = ctx;
     this.kb = knowledgeBase;
     // Our source data.
-    this.rawResults = searchResults.concat(); // defensive copy.
+    this.rawResultsList = rawResultsList.concat(); // defensive copy.
 
     // The current set of data that matches all current filters.
     this.currentData = null;

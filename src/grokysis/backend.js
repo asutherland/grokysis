@@ -9,6 +9,7 @@ class BackendRouter {
     // In a worker, useAsPort would be `self`, for now we're expecting an actual
     // MessagePort.
     useAsPort.addEventListener("message", this._onMessage.bind(this));
+    useAsPort.start();
     this._port = useAsPort;
 
     this.searchDriver = null;
@@ -16,6 +17,7 @@ class BackendRouter {
 
   _onMessage(evt) {
     const data = evt.data;
+    console.log("backend got:", data);
     const expectsReply = !!data.msgId;
 
     const { type, payload } = data;
@@ -26,7 +28,7 @@ class BackendRouter {
       const result = this[handlerName](payload, data.msgId);
       if (expectsReply) {
         Promise.resolve(result).then((resolvedResult) => {
-          this._sendSuccessReply(data.msgId, result);
+          this._sendSuccessReply(data.msgId, resolvedResult);
         });
       }
     } catch(ex) {
