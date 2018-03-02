@@ -135,7 +135,7 @@ export default class NotebookContainer extends React.Component {
 
   render() {
     return (
-      <div className="notebook-container">
+      <div className="notebookContainer">
       { this.state.sheets }
       </div>
     );

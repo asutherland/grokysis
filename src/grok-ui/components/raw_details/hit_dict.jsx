@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { Tab } from 'semantic-ui-react';
+
 import './hit_dict.css';
 
 /**
@@ -15,57 +17,34 @@ export default class HitDict extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    const selected = Object.keys(this.props.hitDict)[0];
-    this.state = {
-      selected
-    };
+    // We previously controlled the active tab, but we're able to defer it to
+    // be Tab's problem.
   }
 
   render() {
-    const tabs = [];
-    let tabContents;
+    const panes = [];
 
-    const selected = this.state.selected;
     for (const [key, values] of Object.entries(this.props.hitDict)) {
-      const isSelected = (key === selected);
-      let tabClass = 'hitDict__tab';
-      let labelClass = 'hitDict__tabLabel';
-      if (isSelected) {
-        tabClass += ' hitDict__tab--selected';
-        labelClass += ' hitDict__tabLabel--selected';
-      }
-      const selectThis = () => {
-        this.setState({ selected: key });
-      };
       let valuesCount;
       if (Array.isArray(values)) {
         valuesCount = values.length;
       } else {
         valuesCount = Object.keys(values).length;
       }
-      const tabLabel = `${key} (${ valuesCount })`;
-      tabs.push(
-        <li key={key}
-             className={ tabClass }
-             onClick={ selectThis }
-             >
-          <a className={ labelClass } title={ tabLabel }>{ tabLabel }</a>
-        </li>
-      );
 
-      if (isSelected) {
-        tabContents = this.props.contentFactory(values, selected);
-      }
+      panes.push({
+        menuItem: `${key} (${ valuesCount })`,
+        render: () => {
+          return this.props.contentFactory(values, key)
+        }
+      });
     }
 
     const hit = this.props.obj;
     return (
-      <div className="hitDict">
-        <ul className="hitDict__tabs">{ tabs }</ul>
-        <div className="hitDict__contents">
-          { tabContents }
-        </div>
-      </div>
+      <Tab className="hitDict"
+        panes={ panes }
+        />
     );
   }
 }

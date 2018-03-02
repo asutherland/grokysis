@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { Accordion, Icon } from 'semantic-ui-react';
+
 import './Sheet.css';
 
 /**
@@ -64,14 +66,19 @@ export default class NotebookSheet extends React.Component {
     }
 
     return (
-      <div className="notebookSheet">
-        <div className={ labelClass }
+      <Accordion fluid styled className="notebookSheet">
+        <Accordion.Title className={ labelClass }
+             index={0}
+             active={ !this.state.collapsed }
              onClick={ this.onToggleCollapsed }
              >
+          <Icon name="dropdown" />
           { this.props.labelWidget }
-        </div>
-        { content }
-      </div>
+        </Accordion.Title>
+        <Accordion.Content active={ !this.state.collapsed }>
+          { content }
+        </Accordion.Content>
+      </Accordion>
     );
   }
 };

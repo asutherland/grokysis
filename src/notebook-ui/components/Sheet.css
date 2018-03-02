@@ -1,50 +1,9 @@
 .notebookSheet {
-  border: 1px solid #aaaacc;
-  background-color: #aaaacc;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.6rem;
 }
 
-/* Very dubiously, I'm choosing to color the label line of the sheet by having
-   its parent have its color change based on focus, rather than just making the
-   selector more complex.  */
-.notebookSheet:focus-within {
-  border: 1px solid #9999cc;
-  background-color: #8888cc;
-  border-radius: 4px;
-}
-
-
-
-.notebookSheet__label::before {
-  display: inline-block;
-  min-width: 1em;
-  margin-left: 0.2em;
-  margin-right: 0.2em;
-  font-weight: bold;
-  text-align: center;
-}
 .notebookSheet__label {
-  color: #222244;
-}
-
-.notebookSheet__label--collapsed::before {
-  content: "+";
-}
-.notebookSheet__label--collapsed {
-
-}
-
-.notebookSheet__label--expanded::before {
-  content: "-";
-}
-.notebookSheet__label--expanded {
-
 }
 
 .notebookSheet__content {
-  background-color: white;
-  border-radius: 2px;
-  padding: 0.2rem;
-  margin: 0.2rem;
 }

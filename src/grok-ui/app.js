@@ -7,6 +7,8 @@ import SearchFieldSheet from './components/sheets/search_field.jsx';
 
 import GrokAnalysisFrontend from '../grokysis/frontend.js';
 
+import 'semantic-ui-css/semantic.min.css';
+
 import './grok-ui.css';
 import '../notebook-ui/notebook-ui.css';
 
