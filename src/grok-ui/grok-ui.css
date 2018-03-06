@@ -1,3 +1,23 @@
-.grook-ui-root {
-  
+body, .grok-ui-root {
+  height: 100%;
+  box-sizing: content-box;
+}
+
+.grokApp {
+}
+
+/* react-reflex semanti-ui fixups:
+   - semantic-ui applies a reset that makes everything use border-box.  But the
+     styling of the splitter uses content-box, so reset it to content-box.
+   - "height" behaves differently when dealing with border-box, so it's simplest
+     to force the splitter's 100% styling to "initial" in order to simply take
+     advantage of the flexbox default sizing.
+ */
+.reflex-layout,
+.reflex-splitter {
+  box-sizing: content-box;
+}
+
+.reflex-splitter {
+  height: initial !important;
 }
