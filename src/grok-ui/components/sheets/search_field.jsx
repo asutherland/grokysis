@@ -1,6 +1,5 @@
 import React from 'react';
 
-import SearchResults from './search_results.jsx';
 
 /**
  * Provides a search field that produces SearchResults sheets when enter is hit.
@@ -21,34 +20,29 @@ export default class SearchFieldSheet extends React.Component {
     // addSheet function while also fulfilling JSX need that the <Widget>
     // instantiation be using the semantically correct name.
 
-    // Trigger a search, this returns a promise.  (The grokCtx is part of the
-    // overall notebook props passed in to all sheets.
-    const pendingResults = this.props.grokCtx.performSearch(searchText);
-
-    this.props.addSheet({
+    this.props.sessionThing.addSheet({
       position: 'after',
-      labelWidget: <span>Search Results: <i>{searchText}</i></span>,
-      // This will make the sheet display a loading indication until the search
-      // completes.
-      awaitContent: pendingResults,
-      // Once the search completes, the contentFactory will be invoked with the
-      // notebook sheet props plus the resolved content promise.
-      contentFactory: (props, searchResults) => {
-        return (
-          <SearchResults {...props}
-            searchResults={ searchResults }
-            />
-        );
-      }
+      persisted: { searchText }
     });
+
+    // Update our own persisted state now that the user committed to what they
+    // typed.
+    // TODO: perhaps also maintain some level of history and fancy up the text
+    // field widget.
+    this.props.sessionThing.updatePersistedState({
+      initialValue: searchText
+    })
   }
 
   render() {
     return (
-      <form onSubmit={this.handleSubmit}>
+      <form onSubmit={ this.handleSubmit }>
         <label>
           Search for:&nbsp;
-          <input type="text" ref={(input) => this.input = input} />
+          <input
+             defaultValue={ this.props.initialValue }
+             type="text"
+             ref={(input) => this.input = input} />
         </label>&nbsp;
         <input type="submit" value="Search" />
       </form>

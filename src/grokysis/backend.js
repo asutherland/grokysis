@@ -1,4 +1,6 @@
+import BackendDB from './backend/db.js';
 import SearchDriver from './backend/search_driver.js';
+
 
 /**
  * This backend doesn't actually live in a worker due to our need to do HTML
@@ -57,13 +59,22 @@ class BackendRouter {
     });
   }
 
-  msg_init({ name }) {
+  async msg_init({ name }) {
     const treeName = name;
     this.searchDriver = new SearchDriver({ treeName });
+
+    this.db = new BackendDB({ name });
+
+    const { globals, sessionThings } = await this.db.init();
+    return { globals, sessionThings };
   }
 
   msg_search(searchArgs, msgId) {
     return this.searchDriver.performSearch(searchArgs)
+  }
+
+  msg_persist() {
+
   }
 }
 

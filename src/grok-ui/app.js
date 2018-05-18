@@ -7,9 +7,10 @@ import {
   ReflexElement
 } from 'react-reflex';
 
-import NotebookContainer from '../notebook-ui/components/Container.jsx';
+import SessionNotebookContainer from '../components/session/session_notebook_container.jsx';
 
 import SearchFieldSheet from './components/sheets/search_field.jsx';
+import SearchResultsSheet from './components/sheets/search_results.jsx';
 
 import GrokAnalysisFrontend from '../grokysis/frontend.js';
 
@@ -30,30 +31,80 @@ class GrokApp extends React.Component {
   constructor(props) {
     super(props);
 
-    const grokCtx = new GrokAnalysisFrontend('main');
+    const grokCtx = new GrokAnalysisFrontend({
+      // For now, there's just a single session.
+      session: {
+        name: 'main',
+        tracks: ['exploration', 'analysis'],
+        defaults: {
+          exploration: [
+            {
+              type: 'searchField',
+              persisted: {
+                initialValue: ''
+              }
+            }
+          ],
+          analysis: [
+            {
+              type: 'diagram',
+              persisted: {}
+            }
+          ]
+        },
+
+        bindings: {
+          searchField: ({ initialValue }) => {
+            return {
+              labelWidget: 'Searchfox Search',
+              awaitContent: null,
+              contentFactory: (props, data) => {
+                return (
+                  <SearchFieldSheet {...props}
+                    initialValue={ initialValue }
+                    />
+                );
+              }
+            }
+          },
+
+          searchResult: ({ searchText }, grokCtx) => {
+            // Trigger a search, this returns a promise.
+            const pendingResults = grokCtx.performSearch(searchText);
+
+            return {
+              labelWidget: <span>Search Results: <i>{searchText}</i></span>,
+              // This will make the sheet display a loading indication until the
+              // search completes.
+              awaitContent: pendingResults,
+              // Once the search completes, the contentFactory will be invoked
+              // with the notebook sheet props plus the resolved content
+              // promise.
+              contentFactory: (props, searchResults) => {
+                return (
+                  <SearchResultsSheet {...props}
+                    searchResults={ searchResults }
+                    />
+                );
+              }
+            };
+          },
+
+          diagram: (persisted, grokCtx) => {
+            return {
+              labelWidget: 'Diagram',
+              awaitContent: null,
+              contentFactory: (props) => {
+                return <div></div>;
+              }
+            };
+          }
+        }
+      }
+    });
 
     this.state = {
-      grokCtx,
-      // XXX The initial sheets objects seem like they'd rather be part of a
-      // higher level session management system.  But this suffices for now.
-      initialExplorationSheets: [
-        {
-          labelWidget: 'Searchfox Search',
-          awaitContent: null,
-          contentFactory: (props) => {
-            return <SearchFieldSheet {...props} />;
-          }
-        }
-      ],
-      initialArtifactSheets: [
-        {
-          labelWidget: 'Diagram',
-          awaitContent: null,
-          contentFactory: (props) => {
-            return <div></div>;
-          }
-        }
-      ]
+      grokCtx
     };
   }
 
@@ -68,17 +119,17 @@ class GrokApp extends React.Component {
     return (
       <ReflexContainer className="grokApp" orientation="vertical">
         <ReflexElement className="left-pane">
-          <NotebookContainer
-            passProps={ explorationProps }
-            initialSheets={ this.state.initialExplorationSheets }
+          <SessionNotebookContainer
+            grokCtx={ this.state.grokCtx }
+            trackName="exploration"
             />
         </ReflexElement>
         <ReflexSplitter />
         <ReflexElement className="right-pane"
           minSize="200" maxSize="800">
-          <NotebookContainer
-            passProps={ artifactProps }
-            initialSheets={ this.state.initialArtifactSheets }
+          <SessionNotebookContainer
+            grokCtx={ this.state.grokCtx }
+            trackName="analysis"
             />
         </ReflexElement>
       </ReflexContainer>

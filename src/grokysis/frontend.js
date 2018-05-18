@@ -1,7 +1,10 @@
 import makeBackend from './backend.js';
 
+import SessionManager from './frontend/session_manager.js';
+
 import RawSearchResults from './frontend/raw_search_results.js';
 import FilteredResults from './frontend/filtered_results.js';
+import KnowledgeBase from './frontend/knowledge_base.js';
 
 class GrokAnalysisFrontend {
   /**
@@ -9,8 +12,11 @@ class GrokAnalysisFrontend {
    * Per-session databases are created that are prefixed with this name.  You
    * probably want to pick a single app-specific name and hardcode it.
    */
-  constructor(name) {
-    this.name = name;
+  constructor({ session }) {
+    this.name = session.name;
+
+    this.sessionManager = new SessionManager(session);
+
     const { backend, useAsPort } = makeBackend();
     this._backend = backend; // the direct destructuring syntax is confusing.
     this._port = useAsPort;
@@ -20,10 +26,12 @@ class GrokAnalysisFrontend {
     this._awaitingReplies = new Map();
     this._nextMsgId = 1;
 
-    this._sendNoReply(
+    this._sendAndAwaitReply(
       "init",
       {
-        name
+        name: this.name
+      }).then((initData) => {
+        this._initCompleted(initData);
       });
   }
 
@@ -78,6 +86,11 @@ class GrokAnalysisFrontend {
     });
   }
 
+
+  _initCompleted({ globals, sessionThings }) {
+    this.sessionManager.consumeSessionData(sessionThings);
+  }
+
   async performSearch(searchStr) {
     const wireResults = await this._sendAndAwaitReply(
       "search",
@@ -88,6 +101,8 @@ class GrokAnalysisFrontend {
     const filtered = new FilteredResults({ rawResultsList: [rawResults] });
     return filtered;
   }
+
+
 }
 
 export default GrokAnalysisFrontend;

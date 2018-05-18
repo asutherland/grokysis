@@ -37,3 +37,11 @@ frontend is decoupled from the backend and to that end even misleadingly uses
 a MessageChannel to ensure structured cloning breaks linkages.  The upside is
 that in a multi-process browser it might be possible to actually do the heavy
 stuff in another process/main-thread from the UI.
+
+## Running / Testing
+
+In the root, run:
+
+```
+npm run server
+```

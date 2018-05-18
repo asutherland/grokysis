@@ -8,7 +8,7 @@ import RawResults from '../raw_details/raw_results.jsx';
  * Displays the filterable results of a Searchfox search's FilteredResults
  * instance.
  */
-export default class SearchResults extends DirtyingComponent {
+export default class SearchResultsSheet extends DirtyingComponent {
   constructor(props) {
     super(props, 'searchResults');
   }
