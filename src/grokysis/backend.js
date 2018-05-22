@@ -1,6 +1,6 @@
 import BackendDB from './backend/db.js';
 import SearchDriver from './backend/search_driver.js';
-
+import loadTriceLog from './backend/trice/loader.js';
 
 /**
  * This backend doesn't actually live in a worker due to our need to do HTML
@@ -33,7 +33,7 @@ class BackendRouter {
       if (expectsReply) {
         Promise.resolve(result).then(
           (resolvedResult) => {
-            console.log("reply sending", type, data);
+            //console.log("reply sending", type, data);
             this._sendSuccessReply(data.msgId, resolvedResult);
           }, (err) => {
             console.error("exception asynchronously processing message:", err);
@@ -83,6 +83,10 @@ class BackendRouter {
 
   msg_search(searchArgs, msgId) {
     return this.searchDriver.performSearch(searchArgs)
+  }
+
+  msg_loadTriceLog(loadArgs, msgId) {
+    return loadTriceLog(loadArgs);
   }
 
   msg_configSetGlobal({ key, value }) {

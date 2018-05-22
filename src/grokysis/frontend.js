@@ -108,6 +108,15 @@ class GrokAnalysisFrontend {
     const filtered = new FilteredResults({ rawResultsList: [rawResults] });
     return filtered;
   }
+
+  async loadTriceLog(url) {
+    const events = await this._sendAndAwaitReply(
+      "loadTriceLog",
+      {
+        url
+      });
+    return events;
+  }
 }
 
 export default GrokAnalysisFrontend;

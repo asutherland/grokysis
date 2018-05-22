@@ -11,6 +11,8 @@ import SessionNotebookContainer from './components/session_notebook/session_note
 
 import SearchFieldSheet from './components/sheets/search_field.jsx';
 import SearchResultsSheet from './components/sheets/search_results.jsx';
+import TriceLoaderSheet from './components/sheets/trice_loader.jsx';
+import TriceTimelineSheet from './components/sheets/trice_timeline.jsx';
 
 import GrokAnalysisFrontend from '../grokysis/frontend.js';
 
@@ -46,6 +48,12 @@ class GrokApp extends React.Component {
           ],
           analysis: [
             {
+              type: 'triceLoader',
+              persisted: {
+                initialValue: ''
+              }
+            },
+            {
               type: 'diagram',
               persisted: {}
             }
@@ -53,6 +61,7 @@ class GrokApp extends React.Component {
         },
 
         bindings: {
+          // ## Searchfox Search Related
           searchField: ({ initialValue }) => {
             return {
               labelWidget: 'Searchfox Search',
@@ -89,12 +98,44 @@ class GrokApp extends React.Component {
             };
           },
 
+          // ## Diagramming from Searchfox Exploration
           diagram: (persisted, grokCtx) => {
             return {
               labelWidget: 'Diagram',
               awaitContent: null,
               contentFactory: (props) => {
-                return <div></div>;
+                return <div>Not yet implemented.</div>;
+              }
+            };
+          },
+
+          // ## Trice Log Visualization
+          triceLoader: ({ initialValue }) => {
+            return {
+              labelWidget: 'Load Trice Log',
+              contentPromise: null,
+              contentFactory: (props, data) => {
+                return (
+                  <TriceLoaderSheet {...props}
+                    initialValue={ initialValue }
+                    />
+                );
+              }
+            }
+          },
+
+          triceTimeline: ({ url }) => {
+            const pendingTriceLog = grokCtx.loadTriceLog(url);
+
+            return {
+              labelWidget: <span>Trice Log: <i>{url}</i></span>,
+              contentPromise: pendingTriceLog,
+              contentFactory: (props, triceLog) => {
+                return (
+                  <TriceTimelineSheet {...props}
+                    triceLog={ triceLog }
+                    />
+                );
               }
             };
           }
@@ -125,7 +166,7 @@ class GrokApp extends React.Component {
         </ReflexElement>
         <ReflexSplitter />
         <ReflexElement className="right-pane"
-          minSize="200" maxSize="800">
+          minSize="200" maxSize="1200">
           <SessionNotebookContainer
             grokCtx={ this.state.grokCtx }
             trackName="analysis"

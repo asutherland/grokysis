@@ -4,7 +4,7 @@ import React from 'react';
 /**
  * Provides a search field that produces SearchResults sheets when enter is hit.
  */
-export default class SearchFieldSheet extends React.Component {
+export default class TriceLoaderSheet extends React.Component {
   constructor(props) {
     super(props);
 
@@ -14,18 +14,16 @@ export default class SearchFieldSheet extends React.Component {
   handleSubmit(event) {
     event.preventDefault();
 
-    const searchText = this.input.value;
+    const url = this.input.value;
 
     this.props.sessionThing.addThing({
-      type: 'searchResult',
+      type: 'triceTimeline',
       position: 'after',
-      persisted: { searchText }
+      persisted: { url }
     });
 
     // Update our own persisted state now that the user committed to what they
     // typed.
-    // TODO: perhaps also maintain some level of history and fancy up the text
-    // field widget.
     this.props.sessionThing.updatePersistedState({
       initialValue: searchText
     })
@@ -35,13 +33,13 @@ export default class SearchFieldSheet extends React.Component {
     return (
       <form onSubmit={ this.handleSubmit }>
         <label>
-          Search for:&nbsp;
+          Load trice log located at:&nbsp;
           <input
              defaultValue={ this.props.initialValue }
              type="text"
              ref={(input) => this.input = input} />
         </label>&nbsp;
-        <input type="submit" value="Search" />
+        <input type="submit" value="Load" />
       </form>
     );
   }

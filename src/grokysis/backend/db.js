@@ -6,7 +6,7 @@ const DB_SESSION_THINGS = 'session-things';
 export default class BackendDB {
   constructor({ name }) {
     this.dbName = `grok-${name}`;
-    this.dbVersion = 2; // want static properties.
+    this.dbVersion = 3; // want static properties.
     this.db = null;
   }
 
@@ -18,6 +18,13 @@ export default class BackendDB {
   async init() {
     let freshDb = false;
     const db = this.db = await idb.open(this.dbName, this.dbVersion, (upDb) => {
+      // Purge any existing object stores.  This lets us hackily bump the db
+      // version as a means of re-initializing the database to its default
+      // state.
+      for (let objectStoreName of upDb.objectStoreNames) {
+        upDb.deleteObjectStore(objectStoreName);
+      }
+
       // global:
       // - stores singleton-ish data in separate keys for things that should be
       //   transactionally separate and are notionally global from the backend's

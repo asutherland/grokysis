@@ -28,7 +28,7 @@ export default class DirtyingComponent extends React.PureComponent {
     let repObjResolver;
 
     if (typeof(canonProp) === 'string') {
-      repObjResolver = () => { console.log("resolving", canonProp, "on", this); return this.props[canonProp] };
+      repObjResolver = () => this.props[canonProp];
     } else {
       // must be a function, we bind because subclass can't access `this` until
       // we return control to them.
