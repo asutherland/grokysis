@@ -15,7 +15,14 @@ class GrokAnalysisFrontend {
   constructor({ session }) {
     this.name = session.name;
 
-    this.sessionManager = new SessionManager(session);
+    this.sessionManager = new SessionManager(
+      session, this,
+      (diskRep) => {
+        return this._sendAndAwaitReply('persistSessionThing', diskRep);
+      },
+      (thingId) => {
+        return this._sendAndAwaitReply('deleteSessionThingById', thingId);
+      });
 
     const { backend, useAsPort } = makeBackend();
     this._backend = backend; // the direct destructuring syntax is confusing.
@@ -101,8 +108,6 @@ class GrokAnalysisFrontend {
     const filtered = new FilteredResults({ rawResultsList: [rawResults] });
     return filtered;
   }
-
-
 }
 
 export default GrokAnalysisFrontend;

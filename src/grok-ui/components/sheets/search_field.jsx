@@ -20,7 +20,8 @@ export default class SearchFieldSheet extends React.Component {
     // addSheet function while also fulfilling JSX need that the <Widget>
     // instantiation be using the semantically correct name.
 
-    this.props.sessionThing.addSheet({
+    this.props.sessionThing.addThing({
+      type: 'searchResult',
       position: 'after',
       persisted: { searchText }
     });

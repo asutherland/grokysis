@@ -1,5 +1,8 @@
 import EE from 'eventemitter3';
 
+import SessionTrack from './session_track';
+import SessionThing from './session_thing';
+
 /**
  * Session management and routing that builds on top of the notebook metaphor.
  *
@@ -41,27 +44,66 @@ import EE from 'eventemitter3';
  *   more straightforward, if breakage-prone, for now.
  * @param o.bindings
  *   Keys are binding names, values are functions that take `(persisted,
- *   grokCtx)` for an argument and returns the object dictionary consumed by
- *   `NotebookContainer.addSheet`.
+ *   grokCtx, sessionThing)` for an argument and returns an object dictionary
+ *   containing:
+ *   - labelWidget:
+ *     React payload to display as the sheet's label.  This is passed as-is to
+ *     the sheet's render method from the get-go.
+ *   - [awaitContent]:
+ *      An optional Promise that delays the invocation of the contentFactory
+ *      method until the content is available.  The name is chosen to make the
+ *      asynchrony super explicit.
+ *   - contentFactory:
+ *     A function that should take two arguments, props and content.  The
+ *     function should return a React payload with the provided props spread
+ *     into the component plus whatever else you put in there.  props is
+ *     guaranteed to include an `addSheet` bound method that takes these
+ *     same arguments (with this and relId already bound).  props is also
+ *     guaranteed to include a `removeThisSheet` bound method, primarily
+ *     intended for the NotebookSheet to use, although it should also pass it
+ *     in to the content.
+ *   - [permanent=false]:
+ *     If true, the sheet shouldn't be removable.
  *
  */
 export default class SessionManager extends EE {
-  constructor({ name, tracks, defaults, bindings}) {
+  constructor({ name, tracks, defaults, bindings }, grokCtx, persistToDB,
+                deleteFromDB) {
     super();
 
     this.name = name;
-    this.tracks = tracks;
+    /** string list of track names */
+    this.trackNames = tracks;
+    /** object dict keyed by track name and with a list of addSheet args. */
     this.defaults = defaults;
+    /** object dict keyed by binding name and with factory function values. */
     this.bindings = bindings;
 
-    /**
-     * Maps from track names to the list of currently live SessionThing
-     * instances in that track.
-     */
-    this.thingListsByTrack = new Map();
-    for (const trackName of this.tracks) {
-      this.thingListsByTrack.set(trackName, []);
+    this.grokCtx = grokCtx;
+    this._persistToDB = persistToDB;
+    this._deleteFromDB = deleteFromDB;
+
+    this.tracks = {};
+    for (const trackName of this.trackNames) {
+      this.tracks[trackName] = new SessionTrack(this, trackName);
     }
+
+    /**
+     * Map from slot name to { sessionThing, callback }.
+     */
+    this.slotMessageRoutings = new Map();
+
+    /**
+     * Next SessionThing id to use.  We start from this value if there was
+     * nothing persisted and we're using defaults.  We start from 1 higher than
+     * the highest thing we found in the database if there was something
+     * persisted.
+     */
+    this._nextId = 1;
+  }
+
+  allocId() {
+    return this._nextId++;
   }
 
   /**
@@ -70,21 +112,93 @@ export default class SessionManager extends EE {
    */
   consumeSessionData(sessionThings) {
     // ## Use defaults if we had no persisted state
-    if (!sessionThings) {
+    // This can mean either sessionThings was null (new database) or just empty.
+    if (!sessionThings || !sessionThings.length) {
+      for (const [trackName, toAdd] of Object.entries(this.defaults)) {
+        const track = this.tracks[trackName];
 
+        for (const { type, persisted } of toAdd) {
+          track.addThing(null, this.allocId(),
+                         { position: 'end', type, persisted });
+        }
+      }
       return;
     }
 
     // ## Use persisted state
+    // Sort by (numeric) index.  The tracks get interleaved this way, but we do
+    // not care as things happen
+    sessionThings.sort((a, b) => a.index - b.index);
+    for (const { id, trackName, type, persisted } of sessionThings) {
+      const track = this.tracks[trackName];
+      if (!track) {
+        console.warn('track no longer exists?', trackName, 'dropping!');
+        continue;
+      }
+      this._nextId = Math.max(this._nextId, id + 1);
+      track.addThing(null, id,
+        { position: 'end', type, persisted, restored: true });
+    }
   }
 
-  /**
-   * Move the given SessionThing up or down in its track and updated persisted
-   * states so that the change is persistent.
-   *
-   * Currently ordering from-
-   */
-  moveThingInTrack(thing, delta) {
+  sessionThingRemoved(removedThing) {
+    // ## TODO: some kind of undo handling via history state pushing.
 
+    // ## Remove from persistence so it never comes back again.
+    this._deleteFromDB(sessionThing.id);
+
+    // ## Remove message slots where this is the current thing.
+    for (const [slotName, { sesssionThing }] of
+         this.slotMessageRoutings.entries()) {
+      if (sessionThing === removedThing) {
+        this.slotMessageRoutings.delete(slotName);
+      }
+    }
+  }
+
+  updatePersistedState(track, thing, persisted) {
+    const diskRep = {
+      id: thing.id,
+      index: track.things.indexOf(thing),
+      trackName: track.name,
+      type: thing.type,
+      persisted
+    }
+
+    return this._persistToDB(diskRep);
+  }
+
+  handleSlotMessage(sessionThing, slotName, callback) {
+    const existing = this.slotMessageRoutings.get(slotName);
+    if (existing) {
+      if (existing.sessionThing === sessionThing) {
+        return;
+      } else {
+        try {
+          existing.callback(null);
+        } catch (ex) {
+          console.error('evicted slot message callback unhappy', sessionThing,
+                        slotName, ex);
+        }
+      }
+    }
+    this.slotMessageRoutings.set(slotName, { sessionThing, callback });
+  }
+
+  stopHandlingSlotMessage(sessionThing, slotName) {
+    const existing = this.slotMessageRoutings.get(slotName);
+    if (existing && existing.sessionThing === sessionThing) {
+      this.slotMessageRoutings.delete(slotName);
+    }
+  }
+
+  sendSlotMessage(slotName, payload) {
+    if (!this.slotMessageRoutings.has(slotName)) {
+      console.warn('unhandled slot message', slotName, payload);
+      return false;
+    }
+
+    const { sessionThing, callback } = this.slotMessageRoutings.get(slotName);
+    return callback(sessionThing);
   }
 }

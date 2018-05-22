@@ -7,7 +7,7 @@ import {
   ReflexElement
 } from 'react-reflex';
 
-import SessionNotebookContainer from '../components/session/session_notebook_container.jsx';
+import SessionNotebookContainer from './components/session_notebook/session_notebook_container.jsx';
 
 import SearchFieldSheet from './components/sheets/search_field.jsx';
 import SearchResultsSheet from './components/sheets/search_results.jsx';
@@ -18,7 +18,6 @@ import 'semantic-ui-css/semantic.min.css';
 import 'react-reflex/styles.css';
 
 import './grok-ui.css';
-import '../notebook-ui/notebook-ui.css';
 
 /**
  * Two vertical panes with a splitter between them.  The left pane displays the
@@ -57,7 +56,7 @@ class GrokApp extends React.Component {
           searchField: ({ initialValue }) => {
             return {
               labelWidget: 'Searchfox Search',
-              awaitContent: null,
+              contentPromise: null,
               contentFactory: (props, data) => {
                 return (
                   <SearchFieldSheet {...props}
@@ -76,7 +75,7 @@ class GrokApp extends React.Component {
               labelWidget: <span>Search Results: <i>{searchText}</i></span>,
               // This will make the sheet display a loading indication until the
               // search completes.
-              awaitContent: pendingResults,
+              contentPromise: pendingResults,
               // Once the search completes, the contentFactory will be invoked
               // with the notebook sheet props plus the resolved content
               // promise.

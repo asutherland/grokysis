@@ -2,7 +2,7 @@ import React from 'react';
 
 import { Accordion, Icon } from 'semantic-ui-react';
 
-import './Sheet.css';
+import './notebook_sheet.css';
 
 /**
  * NotebookSheets live inside a NotebookContainer.  They wrap the provided
@@ -10,7 +10,8 @@ import './Sheet.css';
  * collapsing.  In the future sheets might provide other fancy features like
  * re-ordering and persistence.
  *
- * Expected props:
+ * The driving prop is `sessionThing` which is a SessionThing instance.  We
+ * expect it to have a bindingDef with
  * - labelWidget: Always visible widget that, when clicked on, toggles the
  *   collapse state of the sheet.
  * - contentPromise
@@ -26,20 +27,32 @@ export default class NotebookSheet extends React.Component {
 
     this.state = {
       collapsed: false,
+      permanent: false,
+      labelWidget: null,
       // For now, use a hard-coded loading string.
       renderedContent: <i>Loading...</i>
     };
 
     this.onToggleCollapsed = this.onToggleCollapsed.bind(this);
 
-    this._init(props.contentPromise);
+    this._init();
   }
 
-  async _init(contentPromise) {
+  async _init() {
+    const thing = this.props.sessionThing;
+    const grokCtx = thing.grokCtx;
+
+    const { labelWidget, contentPromise, contentFactory, permanent } =
+      thing.bindingFactory(thing.persisted, grokCtx, thing);
+
+    // It's okay to set this synchronously *before we go async*.  This is not
+    // okay after our first await below.
+    this.state.labelWidget = labelWidget;
+
     const contentData = await contentPromise;
 
-    const renderedContent = this.props.contentFactory(this.props, contentData);
-    this.setState({ renderedContent });
+    const renderedContent = contentFactory(this.props, contentData);
+    this.setState({ permanent: permanent || false, renderedContent });
   }
 
   onToggleCollapsed() {
@@ -73,7 +86,7 @@ export default class NotebookSheet extends React.Component {
              onClick={ this.onToggleCollapsed }
              >
           <Icon name="dropdown" />
-          { this.props.labelWidget }
+          { this.state.labelWidget }
         </Accordion.Title>
         <Accordion.Content active={ !this.state.collapsed }>
           { content }

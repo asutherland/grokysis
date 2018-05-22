@@ -6,7 +6,7 @@ const DB_SESSION_THINGS = 'session-things';
 export default class BackendDB {
   constructor({ name }) {
     this.dbName = `grok-${name}`;
-    this.dbVersion = 1; // want static properties.
+    this.dbVersion = 2; // want static properties.
     this.db = null;
   }
 
@@ -17,7 +17,7 @@ export default class BackendDB {
    */
   async init() {
     let freshDb = false;
-    this.db = await idb.open(this.dbName, (upDb) => {
+    const db = this.db = await idb.open(this.dbName, this.dbVersion, (upDb) => {
       // global:
       // - stores singleton-ish data in separate keys for things that should be
       //   transactionally separate and are notionally global from the backend's
@@ -27,10 +27,15 @@ export default class BackendDB {
       // session-things:
       // - keys are one-up values issued by the front-end SessionManager,
       //   atomically tracked as 'next-session-thing' in  the 'global' store.
+      // - values are objects of the form { id, track, index, persisted }.
+      //   - track: a string that identifies the track the widget resides in.
+      //   - index: a sortable
       upDb.createObjectStore(DB_SESSION_THINGS, { keyPath: 'id' });
 
       freshDb = true;
     });
+
+    console.log('DB: freshly created?', freshDb);
 
     if (freshDb) {
       return {
@@ -44,9 +49,15 @@ export default class BackendDB {
     const pGlobalValues = tx.objectStore(DB_GLOBAL).getAll();
     const pSessionThings = tx.objectStore(DB_SESSION_THINGS).getAll();
 
+    console.log('issued requests', pGlobalKeys, pGlobalValues, pSessionThings);
+
     const globalKeys = await pGlobalKeys;
+    console.log('globalKeys', globalKeys);
     const globalValues = await pGlobalValues;
+    console.log('globalValues', globalValues);
     const sessionThings = await pSessionThings;
+    console.log('sessionThings', sessionThings);
+
 
     const globals = {};
     for (let i=0; i < globalKeys.length; i++) {
@@ -55,6 +66,8 @@ export default class BackendDB {
 
       globals[key] = value;
     }
+
+    console.log('DB: loaded', globals, sessionThings);
 
     return { globals, sessionThings };
   }
