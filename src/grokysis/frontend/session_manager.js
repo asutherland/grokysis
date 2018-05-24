@@ -92,6 +92,10 @@ export default class SessionManager extends EE {
      * Map from slot name to { sessionThing, callback }.
      */
     this.slotMessageRoutings = new Map();
+    /**
+     * Map from slot name to list of payloads.
+     */
+    this.queuedSlotMessages = new Map();
 
     /**
      * Next SessionThing id to use.  We start from this value if there was
@@ -104,6 +108,16 @@ export default class SessionManager extends EE {
 
   allocId() {
     return this._nextId++;
+  }
+
+  /**
+   * Return the track that's paired with the provided track object.
+   */
+  getTrackCounterpart(track) {
+    // eh, round-robin for now.
+    const idx = this.trackNames.indexOf(track.name);
+    const otherIdx = (idx+1) % this.trackNames.length;
+    return this.tracks[this.trackNames[otherIdx]];
   }
 
   /**
@@ -145,10 +159,10 @@ export default class SessionManager extends EE {
     // ## TODO: some kind of undo handling via history state pushing.
 
     // ## Remove from persistence so it never comes back again.
-    this._deleteFromDB(sessionThing.id);
+    this._deleteFromDB(removedThing.id);
 
     // ## Remove message slots where this is the current thing.
-    for (const [slotName, { sesssionThing }] of
+    for (const [slotName, { sessionThing }] of
          this.slotMessageRoutings.entries()) {
       if (sessionThing === removedThing) {
         this.slotMessageRoutings.delete(slotName);
@@ -183,6 +197,17 @@ export default class SessionManager extends EE {
       }
     }
     this.slotMessageRoutings.set(slotName, { sessionThing, callback });
+
+    // ## Clear out the backlog soon but not synchronously.
+    let backlog = this.queuedSlotMessages.get(slotName);
+    if (backlog) {
+      this.queuedSlotMessages.delete(slotName);
+      Promise.resolve().then(() => {
+        for (const payload of backlog) {
+          callback(payload);
+        }
+      });
+    }
   }
 
   stopHandlingSlotMessage(sessionThing, slotName) {
@@ -192,13 +217,23 @@ export default class SessionManager extends EE {
     }
   }
 
-  sendSlotMessage(slotName, payload) {
+  sendSlotMessage(slotName, payload, queue) {
     if (!this.slotMessageRoutings.has(slotName)) {
+      if (queue) {
+        let backlog = this.queuedSlotMessages.get(slotName);
+        if (!backlog) {
+          backlog = [];
+          this.queuedSlotMessages.set(slotName, backlog);
+        }
+        backlog.push(payload);
+        return [false, null];
+      }
+
       console.warn('unhandled slot message', slotName, payload);
-      return false;
+      return [false, null];
     }
 
     const { sessionThing, callback } = this.slotMessageRoutings.get(slotName);
-    return callback(sessionThing);
+    return [true, callback(payload)];
   }
 }

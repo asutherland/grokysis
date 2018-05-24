@@ -23,10 +23,10 @@ export default class SessionThing {
   }
 
   /**
-   * Add another thing in the current track.  Use
+   * Add another thing in the current track.
    *
    * @param {Object} o
-   * @param {'before'|'after'} o.position
+   * @param {'before'|'after'|'end'} o.position
    *    Where to place the sheet in relation to the triggering sheet.
    * @param {String} o.type
    * @param {Object} o.persisted
@@ -35,6 +35,14 @@ export default class SessionThing {
    */
   addThing(o) {
     return this.track.addThing(this, null, o);
+  }
+
+  /**
+   * Add a thing in the track paired with the current track.
+   */
+  addThingInOtherTrack(o) {
+    const friendTrack = this.track.manager.getTrackCounterpart(this.track);
+    return friendTrack.addThing(null, null, o);
   }
 
   /**
@@ -51,6 +59,10 @@ export default class SessionThing {
 
   stopHandlingSlotMessage(slotName) {
     this.track.manager.stopHandlingSlotMessage(this, slotName);
+  }
+
+  sendSlotMessage(slotName, payload, queue) {
+    return this.track.manager.sendSlotMessage(slotName, payload, queue);
   }
 
   /**

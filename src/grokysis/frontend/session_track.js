@@ -89,6 +89,8 @@ export default class SessionTrack extends EE {
     const idx = this.things.indexOf(thing);
     if (idx !== -1) {
       this.things.splice(idx, 1);
+      this.manager.sessionThingRemoved(thing);
+
       this.serial++;
       this.emit('dirty', this);
     }

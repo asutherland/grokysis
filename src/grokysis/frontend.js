@@ -6,6 +6,8 @@ import RawSearchResults from './frontend/raw_search_results.js';
 import FilteredResults from './frontend/filtered_results.js';
 import KnowledgeBase from './frontend/knowledge_base.js';
 
+import TriceLog from './frontend/trice_log.js';
+
 class GrokAnalysisFrontend {
   /**
    * The frontend name determines the root IndexedDB database name used.
@@ -109,13 +111,11 @@ class GrokAnalysisFrontend {
     return filtered;
   }
 
-  async loadTriceLog(url) {
-    const events = await this._sendAndAwaitReply(
+  async loadTriceLog(args) {
+    const wireResults = await this._sendAndAwaitReply(
       "loadTriceLog",
-      {
-        url
-      });
-    return events;
+      args);
+    return new TriceLog(wireResults);
   }
 }
 

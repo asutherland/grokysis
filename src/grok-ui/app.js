@@ -11,6 +11,8 @@ import SessionNotebookContainer from './components/session_notebook/session_note
 
 import SearchFieldSheet from './components/sheets/search_field.jsx';
 import SearchResultsSheet from './components/sheets/search_results.jsx';
+
+import TriceDetailSheet from './components/sheets/trice_detail.jsx';
 import TriceLoaderSheet from './components/sheets/trice_loader.jsx';
 import TriceTimelineSheet from './components/sheets/trice_timeline.jsx';
 
@@ -117,24 +119,35 @@ class GrokApp extends React.Component {
               contentFactory: (props, data) => {
                 return (
                   <TriceLoaderSheet {...props}
-                    initialValue={ initialValue }
                     />
                 );
               }
             }
           },
 
-          triceTimeline: ({ url }) => {
-            const pendingTriceLog = grokCtx.loadTriceLog(url);
+          triceTimeline: (persisted) => {
+            const pendingTriceLog = grokCtx.loadTriceLog(persisted);
 
             return {
-              labelWidget: <span>Trice Log: <i>{url}</i></span>,
+              labelWidget: <span>Trice Log: <i>{ persisted.url }</i></span>,
               contentPromise: pendingTriceLog,
               contentFactory: (props, triceLog) => {
                 return (
                   <TriceTimelineSheet {...props}
                     triceLog={ triceLog }
                     />
+                );
+              }
+            };
+          },
+
+          triceDetail: () => {
+            return {
+              labelWidget: 'Trice Event Detail',
+              contentPromise: null,
+              contentFactory: (props) => {
+                return (
+                  <TriceDetailSheet {...props} />
                 );
               }
             };

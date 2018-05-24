@@ -43,21 +43,106 @@ export default class TriceTimelineVis extends React.PureComponent {
   constructor(props) {
     super(props);
 
-    this.processEvents(this.props.triceLog);
+    this.triceLog = this.props.triceLog;
+    this.rawEvents = this.triceLog.events;
+    this.config = this.triceLog.config;
+
+    this.processConfig(this.config);
+
+    this.processEvents(this.rawEvents);
+
+    this.onClick = this.onClick.bind(this);
+  }
+
+  processConfig(config) {
+    const bpSpecInfo = this.breakpointSpecToInfo = new Map();
+
+    if (config.trace) {
+      for (const [spec, cfg] of Object.entries(config.trace)) {
+        const info = {};
+        bpSpecInfo.set(spec, info);
+
+        if (cfg.display && Array.isArray(cfg.display)) {
+          const normDisplay = cfg.display.map(piece => {
+            if (Array.isArray(piece)) {
+              switch (piece[0]) {
+                case 'literal': {
+                  const literal = piece[1];
+                  return () => literal;
+                }
+                case 'lookup': {
+                  const lookupKey = piece.slice(1).join('.');
+                  return (event) => event.captured[lookupKey] || 'NOT PRESENT';
+                }
+                default: {
+                  console.warn('unable to process config display op', piece[0]);
+                  return () => 'CONFIG ERROR';
+                }
+              }
+            } else {
+              console.warn('unable to process config display piece', piece);
+              return () => 'CONFIG ERROR';
+            }
+          });
+          info.formatEvent = (event) => {
+            let str = '';
+            for (const segFunc of normDisplay) {
+              str += segFunc(event);
+            }
+            return str;
+          }
+        }
+      }
+    }
+  }
+
+  formatEventContent(event, fallback) {
+    const info = this.breakpointSpecToInfo.get(event.spec);
+    if (!info || !info.formatEvent) {
+      return fallback;
+    }
+    return info.formatEvent(event);
+  }
+
+  normalizeCaptured(captured) {
+    if (!captured) {
+      return;
+    }
+
+    for (const [key, value] of Object.entries(captured)) {
+      // ## Extract the string payload from `0xf00 "actual string"``
+      const strMatch = /^0x[0-9a-f]+ "(.+)"$/.exec(value);
+      if (strMatch) {
+        captured[key] = strMatch[1];
+      }
+    }
   }
 
   processEvents(events) {
     const groups = this.groups = [];
     const items = this.items = [];
+
+    const SCALE = 100;
+    const firstTick = events[0].tick - SCALE;
+
     const options = this.options = {
       start: 0,
       zoomMin: 100,
-      zoomMax: 1 * 1000 * 1000
+      zoomMax: 1 * 1000 * 1000,
+      format: {
+        minorLabels: function(date, scale, step) {
+          const relTicks = Math.floor(date * SCALE / 1000000);
+          return `${relTicks} MTicks`;
+        }
+      }
     };
 
     const tidToGroup = new Map();
 
-    for (const event of events) {
+
+    for (let iEvent=0; iEvent < events.length; iEvent++) {
+      const event = events[iEvent];
+      this.normalizeCaptured(event.captured);
       const tid = event.tid;
 
       // ## ensure group
@@ -67,6 +152,7 @@ export default class TriceTimelineVis extends React.PureComponent {
         if (/^mmap_hardlink/.test(tname)) {
           tname = 'Main Thread';
         }
+
         group = {
           id: tid,
           content: tname
@@ -76,14 +162,24 @@ export default class TriceTimelineVis extends React.PureComponent {
       }
 
       // ## create item
+      // persist the start for easier consultation.
+      const content = this.formatEventContent(event, event.spec);
+      event.start = Math.floor((event.tick - firstTick) / SCALE);
       const item = {
-        id: event.tick,
-        content: event.spec,
-        start: Math.floor(event.time * 1000000),
+        id: iEvent,
+        content,
+        start: event.start,
         group: tid
       };
       items.push(item);
 
+    }
+  }
+
+  onClick(tev) {
+    if (tev.item) {
+      const event = this.rawEvents[tev.item];
+      this.props.onEventClicked(event);
     }
   }
 
@@ -93,6 +189,7 @@ export default class TriceTimelineVis extends React.PureComponent {
         options={ this.options }
         items={ this.items }
         groups={ this.groups }
+        clickHandler={ this.onClick }
         />
     );
   }

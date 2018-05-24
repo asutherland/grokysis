@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Accordion, Icon } from 'semantic-ui-react';
+import { Accordion, Button, Icon } from 'semantic-ui-react';
 
 import './notebook_sheet.css';
 
@@ -34,6 +34,7 @@ export default class NotebookSheet extends React.Component {
     };
 
     this.onToggleCollapsed = this.onToggleCollapsed.bind(this);
+    this.onClose = this.onClose.bind(this);
 
     this._init();
   }
@@ -49,10 +50,24 @@ export default class NotebookSheet extends React.Component {
     // okay after our first await below.
     this.state.labelWidget = labelWidget;
 
-    const contentData = await contentPromise;
+    let contentData;
+    if (contentPromise != null) {
+      contentData = await contentPromise;
+    }
 
     const renderedContent = contentFactory(this.props, contentData);
-    this.setState({ permanent: permanent || false, renderedContent });
+    if (contentPromise != null) {
+      // we went async
+      this.setState({ permanent: permanent || false, renderedContent });
+    } else {
+      // we didn't go async, mutate state directly.
+      this.state.permanent = permanent || false;
+      this.state.renderedContent = renderedContent;
+    }
+  }
+
+  onClose() {
+    this.props.sessionThing.removeSelf();
   }
 
   onToggleCollapsed() {
@@ -78,6 +93,15 @@ export default class NotebookSheet extends React.Component {
       );
     }
 
+    let maybeCloseButton;
+    if (!this.state.permanent) {
+      maybeCloseButton = (
+        <Button
+          icon="close" floated="right" size="mini" compact
+          onClick={ this.onClose } />
+      );
+    }
+
     return (
       <Accordion fluid styled className="notebookSheet">
         <Accordion.Title className={ labelClass }
@@ -87,6 +111,7 @@ export default class NotebookSheet extends React.Component {
              >
           <Icon name="dropdown" />
           { this.state.labelWidget }
+          { maybeCloseButton }
         </Accordion.Title>
         <Accordion.Content active={ !this.state.collapsed }>
           { content }
