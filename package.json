@@ -9,7 +9,7 @@
     "semantic-ui-css": "^2.3.0",
     "semantic-ui-react": "^0.78.3",
     "toml": "^2.3.3",
-    "vis": "^4.21.0"
+    "vis": "^4.20.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
