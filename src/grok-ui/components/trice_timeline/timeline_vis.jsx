@@ -127,7 +127,13 @@ export default class TriceTimelineVis extends React.PureComponent {
 
     const options = this.options = {
       start: 0,
-      zoomMin: 100,
+      // If a height isn't specified, the vis self-sizes to its currently
+      // visible contents.  Since that's currently changing, the height
+      // constantly changes.  So specify a reasonable-ish height and maybe at
+      // some point slap a resizer on it.  (Or slap this in a resizer-controlled
+      // container and set the timeline vis to 100% of that.)
+      height: '600px',
+      zoomMin: 10,
       zoomMax: 1 * 1000 * 1000,
       format: {
         minorLabels: function(date, scale, step) {

@@ -12,12 +12,12 @@ export default class TriceDetailSheet extends React.Component {
       event: null
     };
 
-    this._bound_onEventSelected = this.onEventSelected.bind(this);
+    this.onEventSelected = this.onEventSelected.bind(this);
   }
 
   componentWillMount() {
     this.props.sessionThing.handleSlotMessage(
-      'triceLog:eventFocused', this._bound_onEventSelected);
+      'triceLog:eventFocused', this.onEventSelected);
   }
 
   componentWillUnmount() {

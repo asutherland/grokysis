@@ -13,6 +13,7 @@ import SearchFieldSheet from './components/sheets/search_field.jsx';
 import SearchResultsSheet from './components/sheets/search_results.jsx';
 
 import TriceDetailSheet from './components/sheets/trice_detail.jsx';
+import TriceFilterSheet from './components/sheets/trice_filter.jsx';
 import TriceLoaderSheet from './components/sheets/trice_loader.jsx';
 import TriceTimelineSheet from './components/sheets/trice_timeline.jsx';
 
@@ -148,6 +149,18 @@ class GrokApp extends React.Component {
               contentFactory: (props) => {
                 return (
                   <TriceDetailSheet {...props} />
+                );
+              }
+            };
+          },
+
+          triceFilter: () => {
+            return {
+              labelWidget: 'Trice Filter',
+              contentPromise: null,
+              contentFactory: (props) => {
+                return (
+                  <TriceFilterSheet {...props} />
                 );
               }
             };
