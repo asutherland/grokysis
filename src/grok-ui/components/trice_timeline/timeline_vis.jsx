@@ -54,9 +54,11 @@ export default class TriceTimelineVis extends DirtyingComponent {
   }
 
   onClick(tev) {
-    // the item is the id of the item object, not the actual item.
+    // The item is the id of the item object, not the actual item.  And the id
+    // as created by TriceLog is the index in the full list, regardless of
+    // any filtering that may have been applied.
     if (tev.item) {
-      const event = this.snapItems[tev.item];
+      const event = this.props.triceLog.rawEvents[tev.item];
       this.props.onEventClicked(event);
     }
   }
