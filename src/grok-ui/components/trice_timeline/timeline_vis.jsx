@@ -2,6 +2,8 @@ import React from 'react';
 
 import Timeline from 'react-visjs-timeline';
 
+import DirtyingComponent from '../dirtying_component.js';
+
 /**
  * Visualization of trice log.  For now, this just consumes raw events as loaded
  * from the JSON log, but processing should be refactored out into backend
@@ -39,93 +41,30 @@ import Timeline from 'react-visjs-timeline';
  *   but bypassing all the print stuff (and the buffer size limit).  In the
  *   the future this might be parsed into an object representation like `stack`.
  */
-export default class TriceTimelineVis extends React.PureComponent {
+export default class TriceTimelineVis extends DirtyingComponent {
   constructor(props) {
-    super(props);
+    super(props, 'triceLog');
 
-    this.triceLog = this.props.triceLog;
-    this.rawEvents = this.triceLog.events;
-    this.config = this.triceLog.config;
-
-    this.processConfig(this.config);
-
-    this.processEvents(this.rawEvents);
+    // We snapshot these off of this.props.triceLog in render() for sanity
+    // right now.
+    this.snapItems = [];
+    this.snapGroups = [];
 
     this.onClick = this.onClick.bind(this);
   }
 
-  processConfig(config) {
-    const bpSpecInfo = this.breakpointSpecToInfo = new Map();
-
-    if (config.trace) {
-      for (const [spec, cfg] of Object.entries(config.trace)) {
-        const info = {};
-        bpSpecInfo.set(spec, info);
-
-        if (cfg.display && Array.isArray(cfg.display)) {
-          const normDisplay = cfg.display.map(piece => {
-            if (Array.isArray(piece)) {
-              switch (piece[0]) {
-                case 'literal': {
-                  const literal = piece[1];
-                  return () => literal;
-                }
-                case 'lookup': {
-                  const lookupKey = piece.slice(1).join('.');
-                  return (event) => event.captured[lookupKey] || 'NOT PRESENT';
-                }
-                default: {
-                  console.warn('unable to process config display op', piece[0]);
-                  return () => 'CONFIG ERROR';
-                }
-              }
-            } else {
-              console.warn('unable to process config display piece', piece);
-              return () => 'CONFIG ERROR';
-            }
-          });
-          info.formatEvent = (event) => {
-            let str = '';
-            for (const segFunc of normDisplay) {
-              str += segFunc(event);
-            }
-            return str;
-          }
-        }
-      }
+  onClick(tev) {
+    // the item is the id of the item object, not the actual item.
+    if (tev.item) {
+      const event = this.snapItems[tev.item];
+      this.props.onEventClicked(event);
     }
   }
 
-  formatEventContent(event, fallback) {
-    const info = this.breakpointSpecToInfo.get(event.spec);
-    if (!info || !info.formatEvent) {
-      return fallback;
-    }
-    return info.formatEvent(event);
-  }
+  render() {
+    const triceLog = this.props.triceLog;
 
-  normalizeCaptured(captured) {
-    if (!captured) {
-      return;
-    }
-
-    for (const [key, value] of Object.entries(captured)) {
-      // ## Extract the string payload from `0xf00 "actual string"``
-      const strMatch = /^0x[0-9a-f]+ "(.+)"$/.exec(value);
-      if (strMatch) {
-        captured[key] = strMatch[1];
-      }
-    }
-  }
-
-  processEvents(events) {
-    const groups = this.groups = [];
-    const items = this.items = [];
-
-    const SCALE = 100;
-    const firstTick = events[0].tick - SCALE;
-
-    const options = this.options = {
+    this.options = {
       start: 0,
       // If a height isn't specified, the vis self-sizes to its currently
       // visible contents.  Since that's currently changing, the height
@@ -137,64 +76,20 @@ export default class TriceTimelineVis extends React.PureComponent {
       zoomMax: 1 * 1000 * 1000,
       format: {
         minorLabels: function(date, scale, step) {
-          const relTicks = Math.floor(date * SCALE / 1000000);
+          const relTicks = Math.floor(date * triceLog.SCALE / 1000000);
           return `${relTicks} MTicks`;
         }
       }
     };
 
-    const tidToGroup = new Map();
+    this.snapItems = triceLog.filteredVisItems.concat();
+    this.snapGroups = triceLog.filteredVisGroups.concat();
 
-
-    for (let iEvent=0; iEvent < events.length; iEvent++) {
-      const event = events[iEvent];
-      this.normalizeCaptured(event.captured);
-      const tid = event.tid;
-
-      // ## ensure group
-      let group = tidToGroup.get(tid);
-      if (!group) {
-        let tname = event.tname;
-        if (/^mmap_hardlink/.test(tname)) {
-          tname = 'Main Thread';
-        }
-
-        group = {
-          id: tid,
-          content: tname
-        };
-        groups.push(group);
-        tidToGroup.set(tid, group);
-      }
-
-      // ## create item
-      // persist the start for easier consultation.
-      const content = this.formatEventContent(event, event.spec);
-      event.start = Math.floor((event.tick - firstTick) / SCALE);
-      const item = {
-        id: iEvent,
-        content,
-        start: event.start,
-        group: tid
-      };
-      items.push(item);
-
-    }
-  }
-
-  onClick(tev) {
-    if (tev.item) {
-      const event = this.rawEvents[tev.item];
-      this.props.onEventClicked(event);
-    }
-  }
-
-  render() {
     return (
       <Timeline
         options={ this.options }
-        items={ this.items }
-        groups={ this.groups }
+        items={ this.snapItems }
+        groups={ this.snapGroups }
         clickHandler={ this.onClick }
         />
     );

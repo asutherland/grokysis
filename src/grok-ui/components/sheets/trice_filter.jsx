@@ -1,8 +1,9 @@
 import React from 'react';
 
-
 /**
  * Supports faceting and filtering of the current trice.
+ *
+ * The UI is a table of
  */
 export default class TriceFilterSheet extends React.PureComponent {
   constructor(props) {
@@ -29,7 +30,6 @@ export default class TriceFilterSheet extends React.PureComponent {
   }
 
   render() {
-
     return (
       <div>
       </div>
