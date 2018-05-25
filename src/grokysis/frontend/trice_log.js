@@ -271,4 +271,13 @@ export default class TriceLog extends EE {
     return scaled;
   }
 
+  translateItemTimeToBin(itemTime) {
+    // Multiplying by scale us in firstTick-relative space.
+    const relTickTime = itemTime * this.SCALE;
+    // So now it's about the bin.
+    const tickSpan = this.lastTick - this.firstTick;
+    const bin = Math.floor(this.NBINS * relTickTime / tickSpan);
+    return bin;
+  }
+
 }

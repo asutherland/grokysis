@@ -76,6 +76,13 @@ export default class TriceTimelineVis extends DirtyingComponent {
     actual.moveTo(time);
   }
 
+  componentDidMount() {
+    this.timeline = this.timelineRef.current.$el;
+    if (this.props.onRangeChanged) {
+      this.timeline.on('rangechanged', this.props.onRangeChanged);
+    }
+  }
+
   render() {
     const triceLog = this.props.triceLog;
 

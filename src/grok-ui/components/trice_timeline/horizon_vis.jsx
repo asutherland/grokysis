@@ -14,8 +14,8 @@ export default class HorizonVis extends React.PureComponent {
 
   componentDidMount() {
     const chart = horizonChart()
-      .height(20)
-      //.width(200)
+      .height(20) // width is set by the number of bins, 1:1
+      .visibleRange(this.props.visibleRange || null)
       .colors(['#313695', '#4575b4', '#74add1', '#abd9e9', '#fee090', '#fdae61', '#f46d43', '#d73027']);
     var horizons = select(this.visRef.current).selectAll('.horizon')
       .data([this.props.series])
@@ -23,6 +23,15 @@ export default class HorizonVis extends React.PureComponent {
       .attr('class', 'horizon')
       .each(chart)
       .on('click', this.onClick);
+  }
+
+  componentDidUpdate() {
+    // we will end up updating if/when the visibleRange props changes.
+    //console.log('did update transferring to did mount');
+    const div = this.visRef.current;
+    // XXX force an update via complete rebuild.
+    div.removeChild(div.firstChild);
+    this.componentDidMount();
   }
 
   onClick(data, index, group) {

@@ -13,20 +13,26 @@ export default class TriceFilterSheet extends React.PureComponent {
     super(props);
 
     this.state = {
-      log: null
+      log: null,
+      firstVisibleBin: null,
+      lastVisibleBin: null
     };
 
     this.onLogHello = this.onLogHello.bind(this);
+    this.onSeeked = this.onSeeked.bind(this);
     this.onClickVisX = this.onClickVisX.bind(this);
   }
 
   componentWillMount() {
     this.props.sessionThing.handleSlotMessage(
       'triceLog:filters:hello', this.onLogHello);
+    this.props.sessionThing.handleSlotMessage(
+      'triceLog:filters:seeked', this.onSeeked);
   }
 
   componentWillUnmount() {
     this.props.sessionThing.stopHandlingSlotMessage('triceLog:eventFocused');
+    this.props.sessionThing.stopHandlingSlotMessage('triceLog:filters:seeked');
   }
 
   onLogHello(log) {
@@ -40,9 +46,21 @@ export default class TriceFilterSheet extends React.PureComponent {
     this.props.sessionThing.sendSlotMessage('triceLog:vis:seek', { bin: x })
   }
 
+  onSeeked({ startBin, endBin }) {
+    this.setState({
+      firstVisibleBin: startBin,
+      lastVisibleBin: endBin
+    });
+  }
+
   render() {
     if (!this.state.log) {
       return <div></div>;
+    }
+
+    let visibleRange = null;
+    if (this.state.firstVisibleBin !== null) {
+      visibleRange = [this.state.firstVisibleBin, this.state.lastVisibleBin];
     }
 
     const tableRows = [];
@@ -56,7 +74,11 @@ export default class TriceFilterSheet extends React.PureComponent {
           <Table.Cell><span style={ hackyStyle }>{ facet.name }</span></Table.Cell>
           <Table.Cell>{ facet.count }</Table.Cell>
           <Table.Cell>
-            <HorizonVis series={ facet.bins } onClick={ this.onClickVisX }/>
+            <HorizonVis
+              series={ facet.bins }
+              visibleRange={ visibleRange }
+              onClick={ this.onClickVisX }
+            />
           </Table.Cell>
         </Table.Row>
       );

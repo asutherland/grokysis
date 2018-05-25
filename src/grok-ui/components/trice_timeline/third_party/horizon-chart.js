@@ -21,6 +21,7 @@ export default function () {
         mode = 'offset',
         axis = null,
         title = null,
+        visRange = null,
         extent = null, // the extent is derived from the data, unless explicitly set via .extent([min, max])
         //x = d3.scaleLinear(), // TODO: use ordinal scale instead?
         x = null,
@@ -73,8 +74,15 @@ export default function () {
             startIndex = ~~Math.max(0, -(offsetX / increment)),
             endIndex = ~~Math.min(data.length, startIndex + width / increment);
 
+        // show visible range with blue background.
+        if (visRange) {
+          context.fillStyle = 'lightblue';
+          context.fillRect(visRange[0], 0, Math.max(1, visRange[1] - visRange[0]), height);
+        }
+
         // skip drawing if there's no data to be drawn
         if (startIndex > data.length) return;
+
 
 
         // we are drawing positive & negative bands separately to avoid mutating canvas state
@@ -212,6 +220,10 @@ export default function () {
 
     horizonChart.offsetX = function (_) {
         return arguments.length ? (offsetX = _, horizonChart) : offsetX;
+    };
+
+    horizonChart.visibleRange = function(_) {
+        return arguments.length ? (visRange = _, horizonChart) : visRange;
     };
 
     // the data frame currently being shown:

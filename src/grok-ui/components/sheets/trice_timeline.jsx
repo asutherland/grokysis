@@ -36,6 +36,7 @@ export default class TriceTimelineSheet extends React.PureComponent {
     this.lastSpawnedFilters = 0;
 
     this.onSeekRequest = this.onSeekRequest.bind(this);
+    this.onRangeChanged = this.onRangeChanged.bind(this);
   }
 
   componentWillMount() {
@@ -112,6 +113,16 @@ export default class TriceTimelineSheet extends React.PureComponent {
     vis.doSeek(time);
   }
 
+  onRangeChanged({ start, end }) {
+    const triceLog = this.props.triceLog;
+    const startBin = triceLog.translateItemTimeToBin(start);
+    const endBin = triceLog.translateItemTimeToBin(end);
+
+    // XXX this conceptually wants to be a broadcast.
+    const thing = this.props.sessionThing;
+    thing.sendSlotMessage('triceLog:filters:seeked', { startBin, endBin });
+  }
+
   render() {
     return (
       <div>
@@ -119,6 +130,7 @@ export default class TriceTimelineSheet extends React.PureComponent {
         <TriceTimelineVis ref={ this.visRef }
            triceLog={ this.props.triceLog }
            onEventClicked={ this.onEventClicked }
+           onRangeChanged={ this.onRangeChanged }
            />
       </div>
     );
