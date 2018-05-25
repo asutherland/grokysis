@@ -1,6 +1,8 @@
 import React from 'react';
 import { Table } from 'semantic-ui-react'
 
+import HorizonVis from '../trice_timeline/horizon_vis.jsx';
+
 /**
  * Supports faceting and filtering of the current trice.
  *
@@ -45,6 +47,7 @@ export default class TriceFilterSheet extends React.PureComponent {
         <Table.Row key={ fullPath }>
           <Table.Cell><span style={ hackyStyle }>{ facet.name }</span></Table.Cell>
           <Table.Cell>{ facet.count }</Table.Cell>
+          <Table.Cell><HorizonVis series={ facet.bins } /></Table.Cell>
         </Table.Row>
       );
 

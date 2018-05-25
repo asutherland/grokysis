@@ -158,7 +158,7 @@ export default class TriceLog extends EE {
       }
       facet.count++;
 
-      const useBin = Math.floor(NBINS * (event.start - firstTick) / tickSpan);
+      const useBin = Math.floor(NBINS * (event.tick - firstTick) / tickSpan);
       facet.bins[useBin]++;
 
       const info = this.breakpointSpecToInfo.get(spec);
@@ -181,6 +181,7 @@ export default class TriceLog extends EE {
       facet.children.sort((a, b) => a.name.localeCompare(b.name));
     }
     topFacets.sort((a, b) => a.name.localeCompare(b.name));
+    console.log('FACETS', this.firstTick, this.lastTick, tickSpan, topFacets);
 
     this.emit('facetsUpdated', this.filterableFacets);
   }
