@@ -23,6 +23,13 @@ export default class TriceLog extends EE {
      */
     this.rawConfig = config;
 
+    /**
+     * List of the breakpoints we observed and summary statistics over the
+     * time-scales, with those that had `facetBy` entries in the toml config
+     * containing self-similar child nodes that contain similar statistics.
+     */
+    this.filterableFacets = [];
+
     this.filterFuncs = [];
 
     /**
@@ -35,15 +42,32 @@ export default class TriceLog extends EE {
      */
     this.filteredVisGroups = [];
 
-    // ## normalize rawEvents
+    // ## normalize rawEvents and find time bounds
+    const SCALE = this.SCALE = 100;
+    // Do min/max over all the events.  If the logs came from a single process,
+    // we expect the first/last even to correspond to firstTick and lastTick,
+    // but we expect to be dealing with multiple processes' traces and that
+    // they may not actually be sorted.
+    let firstTick = events[0].tick;
+    let lastTick = events[0].tick;
+
     for (const event of events) {
       this.normalizeCaptured(event.captured);
+      firstTick = Math.min(event.tick, firstTick);
+      lastTick = Math.max(event.tick, lastTick);
     }
+    this.firstTick = firstTick;
+    this.lastTick = lastTick;
 
+    // ## need the configuration to process the events
     this.processConfig(this.rawConfig);
+
+    // ## compute the facets.
+    this.deriveFilterableFacets();
+
+    // ## perform an initial, un-filtered event processing.
     this.processEvents(this.rawEvents);
   }
-
 
   processConfig(config) {
     const bpSpecInfo = this.breakpointSpecToInfo = new Map();
@@ -53,6 +77,12 @@ export default class TriceLog extends EE {
         const info = {};
         bpSpecInfo.set(spec, info);
 
+        // ## `display` for the terse display format.
+        // This is an array of arrays weird format right now.  This is partially
+        // because toml requires homogeneous arrays.  The right thing is
+        // some type of simplistic templating mechanism that resembles template
+        // literals.  It would probably be wise to do this at the same time as
+        // cleaning up the syntax for specifying gdb object traversals.
         if (cfg.display && Array.isArray(cfg.display)) {
           const normDisplay = cfg.display.map(piece => {
             if (Array.isArray(piece)) {
@@ -82,9 +112,77 @@ export default class TriceLog extends EE {
             }
             return str;
           }
+        } else {
+          info.formatEvent = null;
+        }
+
+        if (cfg.facetBy) {
+          info.facetBy = cfg.facetBy;
+        } else {
+          info.facetBy = [];
         }
       }
     }
+  }
+
+  deriveFilterableFacets() {
+    const NBINS = 100;
+
+    function makeFacet(name) {
+      const facet = {
+        name,
+        count: 0,
+        bins: new Array(NBINS),
+        children: [],
+        childrenByKey: new Map()
+      };
+      for (let i=0; i < NBINS; i++) {
+        facet.bins[i] = 0;
+      }
+      return facet;
+    }
+
+    const topFacets = this.filterableFacets = [];
+    const topBySpec = new Map();
+
+    const firstTick = this.firstTick;
+    const tickSpan = this.lastTick - this.firstTick;
+
+    for (const event of this.rawEvents) {
+      const spec = event.spec;
+      let facet = topBySpec.get(spec);
+      if (!facet) {
+        facet = makeFacet(spec);
+        topFacets.push(facet);
+        topBySpec.set(spec, facet);
+      }
+      facet.count++;
+
+      const useBin = Math.floor(NBINS * (event.start - firstTick) / tickSpan);
+      facet.bins[useBin]++;
+
+      const info = this.breakpointSpecToInfo.get(spec);
+      for (const facetDef of info.facetBy) {
+        const lookupKey = facetDef.join('.');
+        if (!(lookupKey in event.captured)) {
+          continue;
+        }
+
+        const value = event.captured[lookupKey];
+        let kidFacet = facet.childrenByKey.get(value);
+        if (!kidFacet) {
+          kidFacet = makeFacet(value);
+          facet.children.push(kidFacet);
+          facet.childrenByKey.set(value, kidFacet);
+        }
+        kidFacet.count++;
+        kidFacet.bins[useBin]++;
+      }
+      facet.children.sort((a, b) => a.name.localeCompare(b.name));
+    }
+    topFacets.sort((a, b) => a.name.localeCompare(b.name));
+
+    this.emit('facetsUpdated', this.filterableFacets);
   }
 
   formatEventContent(event, fallback) {
@@ -109,12 +207,13 @@ export default class TriceLog extends EE {
     }
   }
 
-  processEvents(events) {
+  processEvents() {
+    const events = this.rawEvents;
     const groups = this.filteredVisGroups = [];
     const items = this.filteredVisItems = [];
 
-    const SCALE = this.SCALE = 100;
-    const firstTick = events[0].tick - SCALE;
+    const SCALE = this.SCALE;
+    const firstTick = this.firstTick;
 
     const tidToGroup = new Map();
 

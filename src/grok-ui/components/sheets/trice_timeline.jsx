@@ -1,6 +1,5 @@
 import React from 'react';
 
-//import DirtyingComponent from '../dirtying_component.js';
 import { Accordion, Button, Icon } from 'semantic-ui-react';
 
 import TriceTimelineVis from '../trice_timeline/timeline_vis.jsx';
