@@ -45,6 +45,9 @@ export default class TriceTimelineVis extends DirtyingComponent {
   constructor(props) {
     super(props, 'triceLog');
 
+    // Necessary for triggering methods currently not exposed via prop magic.
+    this.timelineRef = React.createRef();
+
     // We snapshot these off of this.props.triceLog in render() for sanity
     // right now.
     this.snapItems = [];
@@ -61,6 +64,16 @@ export default class TriceTimelineVis extends DirtyingComponent {
       const event = this.props.triceLog.rawEvents[tev.item];
       this.props.onEventClicked(event);
     }
+  }
+
+  doSeek(time) {
+    const actual = this.timelineRef.current && this.timelineRef.current.$el;
+    if (!actual) {
+      return;
+    }
+
+    console.log('triggering seek to', time);
+    actual.moveTo(time);
   }
 
   render() {
@@ -88,7 +101,7 @@ export default class TriceTimelineVis extends DirtyingComponent {
     this.snapGroups = triceLog.filteredVisGroups.concat();
 
     return (
-      <Timeline
+      <Timeline ref={ this.timelineRef }
         options={ this.options }
         items={ this.snapItems }
         groups={ this.snapGroups }

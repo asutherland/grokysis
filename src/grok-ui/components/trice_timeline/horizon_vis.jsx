@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {select} from 'd3-selection';
+import { select, mouse, event } from 'd3-selection';
 import horizonChart from './third_party/horizon-chart.js';
 
 export default class HorizonVis extends React.PureComponent {
@@ -8,6 +8,8 @@ export default class HorizonVis extends React.PureComponent {
     super(props);
 
     this.visRef = React.createRef();
+
+    this.onClick = this.onClick.bind(this);
   }
 
   componentDidMount() {
@@ -19,7 +21,15 @@ export default class HorizonVis extends React.PureComponent {
       .data([this.props.series])
       .enter().append('div')
       .attr('class', 'horizon')
-      .each(chart);
+      .each(chart)
+      .on('click', this.onClick);
+  }
+
+  onClick(data, index, group) {
+    //console.log('click', data, index, group, event);
+    //console.log('mouse info', mouse(event.target));
+    // send the x coordinate
+    this.props.onClick(mouse(event.target)[0]);
   }
 
   render() {

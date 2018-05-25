@@ -11,6 +11,12 @@ export default class TriceTimelineSheet extends React.PureComponent {
   constructor(props) {
     super(props, 'triceLog');
 
+    // We handle slot message routing, so it's necessary for us to have a ref to
+    // the vis to direct it to respond to external stimuli like seeking which
+    // we do not want to rebuild the vis.  For re-filtering it's fine to
+    // re-build the vis.
+    this.visRef = React.createRef();
+
     this.onEventClicked = this.onEventClicked.bind(this);
     this.onFiltersClicked = this.onFiltersClicked.bind(this);
 
@@ -28,6 +34,17 @@ export default class TriceTimelineSheet extends React.PureComponent {
     this.lastSpawnedSheet = 0;
     // exact same deal with filters; this obviously needs support logic.
     this.lastSpawnedFilters = 0;
+
+    this.onSeekRequest = this.onSeekRequest.bind(this);
+  }
+
+  componentWillMount() {
+    this.props.sessionThing.handleSlotMessage(
+      'triceLog:vis:seek', this.onSeekRequest);
+  }
+
+  componentWillUnmount() {
+    this.props.sessionThing.stopHandlingSlotMessage('triceLog:vis:seek');
   }
 
   onEventClicked(event) {
@@ -78,11 +95,28 @@ export default class TriceTimelineSheet extends React.PureComponent {
     this.lastSpawnedFilters = performance.now();
   }
 
+  onSeekRequest(req) {
+    const vis = this.visRef.current;
+    if (!vis) {
+      return;
+    }
+
+    let time;
+    if (req.bin) {
+      time = this.props.triceLog.translateBinToItemTime(req.bin);
+    } else {
+      console.warn('bad seek request format', req);
+      throw new Error('bad seek request format');
+    }
+
+    vis.doSeek(time);
+  }
+
   render() {
     return (
       <div>
         <Button onClick={ this.onFiltersClicked }>Filters</Button>
-        <TriceTimelineVis
+        <TriceTimelineVis ref={ this.visRef }
            triceLog={ this.props.triceLog }
            onEventClicked={ this.onEventClicked }
            />

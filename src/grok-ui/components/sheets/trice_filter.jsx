@@ -17,6 +17,7 @@ export default class TriceFilterSheet extends React.PureComponent {
     };
 
     this.onLogHello = this.onLogHello.bind(this);
+    this.onClickVisX = this.onClickVisX.bind(this);
   }
 
   componentWillMount() {
@@ -32,6 +33,13 @@ export default class TriceFilterSheet extends React.PureComponent {
     this.setState({ log });
   }
 
+  // note that we don't care which vis's X is clicked right now.  A nice
+  // enhancement would be to know which vis was clicked and find the closest
+  // bin so we can snap to it.
+  onClickVisX(x) {
+    this.props.sessionThing.sendSlotMessage('triceLog:vis:seek', { bin: x })
+  }
+
   render() {
     if (!this.state.log) {
       return <div></div>;
@@ -40,14 +48,16 @@ export default class TriceFilterSheet extends React.PureComponent {
     const tableRows = [];
     // This needs to be a tree-table thing so we can use <li> tags.
     const INDENT_DELTA = 12;
-    function renderFacet(facet, indent, parentPath) {
+    const renderFacet = (facet, indent, parentPath) => {
       const fullPath = parentPath + '/' + facet.name;
       const hackyStyle = { paddingLeft: `${indent}px`};
       tableRows.push(
         <Table.Row key={ fullPath }>
           <Table.Cell><span style={ hackyStyle }>{ facet.name }</span></Table.Cell>
           <Table.Cell>{ facet.count }</Table.Cell>
-          <Table.Cell><HorizonVis series={ facet.bins } /></Table.Cell>
+          <Table.Cell>
+            <HorizonVis series={ facet.bins } onClick={ this.onClickVisX }/>
+          </Table.Cell>
         </Table.Row>
       );
 

@@ -44,6 +44,8 @@ export default class TriceLog extends EE {
 
     // ## normalize rawEvents and find time bounds
     const SCALE = this.SCALE = 100;
+    this.NBINS = 200;
+
     // Do min/max over all the events.  If the logs came from a single process,
     // we expect the first/last even to correspond to firstTick and lastTick,
     // but we expect to be dealing with multiple processes' traces and that
@@ -126,7 +128,7 @@ export default class TriceLog extends EE {
   }
 
   deriveFilterableFacets() {
-    const NBINS = 100;
+    const NBINS = this.NBINS;
 
     function makeFacet(name) {
       const facet = {
@@ -254,6 +256,19 @@ export default class TriceLog extends EE {
 
     this.serial++;
     this.emit('dirty');
+  }
+
+  /**
+   * Given a bin number, return the time as used for item.start that corresponds
+   * to the center of the bin.
+   */
+  translateBinToItemTime(binNum) {
+    const tickSpan = this.lastTick - this.firstTick;
+    const binSpan = tickSpan / this.NBINS;
+    const binTickMiddle = binSpan * (binNum + 0.5);
+    // okay, that's in tick-space, but now we need to reduce by Scale and round.
+    const scaled = Math.floor(binTickMiddle / this.SCALE);
+    return scaled;
   }
 
 }
