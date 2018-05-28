@@ -76,6 +76,10 @@ export default class TriceTimelineVis extends DirtyingComponent {
     actual.moveTo(time);
   }
 
+  get visJsWidget() {
+    return this.timelineRef.current && this.timelineRef.current.$el;
+  }
+
   componentDidMount() {
     this.timeline = this.timelineRef.current.$el;
     if (this.props.onRangeChanged) {
@@ -96,6 +100,10 @@ export default class TriceTimelineVis extends DirtyingComponent {
       height: '600px',
       zoomMin: 10,
       zoomMax: 1 * 1000 * 1000,
+      // require holding down control to use the scroll-wheel to zoom, otherwise
+      // it's super weird to scroll and then hit the timeline and have it start
+      // zooming.
+      zoomKey: 'ctrlKey',
       format: {
         minorLabels: function(date/*, scale/*, step*/) {
           const relTicks = Math.floor(date * triceLog.SCALE / 1000000);

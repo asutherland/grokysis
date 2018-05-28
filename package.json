@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "binary-search-bounds": "github:bvaughn/binary-search-bounds#971e0ecbabcb1e9e657a68bf7cd937598117b688",
     "d3-array": "^1.2.1",
     "d3-axis": "^1.0.8",
     "d3-scale": "^2.0.0",

@@ -1,4 +1,5 @@
 import EE from 'eventemitter3';
+import bounds from 'binary-search-bounds';
 
 export default class TriceLog extends EE {
   constructor({ events, config }) {
@@ -10,11 +11,15 @@ export default class TriceLog extends EE {
      * The events as parsed out of the nd-json file, unfiltered, but with some
      * normalizations perormed in place that ideally would have happened during
      * trace generation.  In particular:
+     * - Sorted by tick (ascending).  We need a sorting invariant and this is
+     *   it.
      * - Strings are normalized from `0xf00 "string"` to just `string`.  This
      *   is because the pretty printers are getting involved be helpful, but
      *   it's not actually that helpful.
      */
     this.rawEvents = events;
+    events.sort((a, b) => a.tick - b.tick);
+
     /**
      * The (effective) TOML config file that was used to generate the trace and
      * may have display hints built-in.  By effective, I mean that this might
@@ -433,5 +438,25 @@ export default class TriceLog extends EE {
     const tickSpan = this.lastTick - this.firstTick;
     const bin = Math.floor(this.NBINS * relTickTime / tickSpan);
     return bin;
+  }
+
+  findfirstEventBeforeItemTime(itemTime) {
+    // we can stay in scaled space for this.
+    const idx = bounds.lt(this.filteredVisItems, { start: itemTime },
+                          (a, b) => a.start - b.start);
+    if (idx === -1) {
+      return null;
+    }
+    return this.filteredVisItems[idx];
+  }
+
+  findfirstEventAfterItemTime(itemTime) {
+    // we can stay in scaled space for this.
+    const idx = bounds.gt(this.filteredVisItems, { start: itemTime },
+                          (a, b) => a.start - b.start);
+    if (idx === -1) {
+      return null;
+    }
+    return this.filteredVisItems[idx];
   }
 }

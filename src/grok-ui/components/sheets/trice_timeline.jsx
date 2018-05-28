@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Accordion, Button, Icon } from 'semantic-ui-react';
+import { Menu } from 'semantic-ui-react';
 
 import TriceTimelineVis from '../trice_timeline/timeline_vis.jsx';
 
@@ -42,6 +42,10 @@ export default class TriceTimelineSheet extends React.PureComponent {
 
     this.onSeekRequest = this.onSeekRequest.bind(this);
     this.onRangeChanged = this.onRangeChanged.bind(this);
+    this.onZoomIn = this.onZoomIn.bind(this);
+    this.onZoomOut = this.onZoomOut.bind(this);
+    this.onMovePrev = this.onMovePrev.bind(this);
+    this.onMoveNext = this.onMoveNext.bind(this);
   }
 
   componentWillMount() {
@@ -145,10 +149,61 @@ export default class TriceTimelineSheet extends React.PureComponent {
     thing.sendSlotMessage('triceLog:filters:seeked', { startBin, endBin });
   }
 
+  /** Return the underlying vis.js timeline widget to invoke its methods */
+  get visJsWidget() {
+    const visJsx = this.visRef.current;
+    return visJsx.visJsWidget;
+  }
+
+  onZoomIn() {
+    this.visJsWidget.zoomIn(0.5);
+  }
+
+  onZoomOut() {
+    this.visJsWidget.zoomOut(0.5);
+  }
+
+  /**
+   * Move the window so that the first event preceding the visible window is
+   * brought to the center of the timline.
+   */
+  onMovePrev() {
+    const triceLog = this.props.triceLog;
+    const startTime = this.visJsWidget.getWindow().start.valueOf();
+    const event = triceLog.findfirstEventBeforeItemTime(startTime);
+    if (event) {
+      this.visJsWidget.moveTo(event.start);
+    }
+  }
+
+  onMoveNext() {
+    const triceLog = this.props.triceLog;
+    const endTime = this.visJsWidget.getWindow().end.valueOf();
+    const event = triceLog.findfirstEventAfterItemTime(endTime);
+    if (event) {
+      this.visJsWidget.moveTo(event.start);
+    }
+  }
+
   render() {
     return (
       <div>
-        <Button onClick={ this.onFiltersClicked }>Filters</Button>
+        <Menu size='small'>
+          <Menu.Menu>
+            <Menu.Item icon='zoom in' onClick={ this.onZoomIn } />
+            <Menu.Item icon='zoom out' onClick={ this.onZoomOut } />
+          </Menu.Menu>
+          <Menu.Menu>
+            <Menu.Item icon='backward' onClick={ this.onMovePrev } />
+            <Menu.Item icon='forward' onClick={ this.onMoveNext } />
+          </Menu.Menu>
+          <Menu.Menu position='right'>
+            <Menu.Item
+              name='Filters'
+              onClick={ this.onFiltersClicked } />
+          </Menu.Menu>
+        </Menu>
+
         <TriceTimelineVis ref={ this.visRef }
            triceLog={ this.props.triceLog }
            onEventClicked={ this.onEventClicked }
