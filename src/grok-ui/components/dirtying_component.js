@@ -21,9 +21,15 @@ export default class DirtyingComponent extends React.PureComponent {
    *   initialized in the subclass's constructor.  You'd pass a function if you
    *   want to pull a nested field off a passed object, such as if using
    *   context objects.
+   * @param {String[]} [extraEvents]
+   *   A list of extra event names that should automatically bind on mount and
+   *   unmount, binding to on + event-name-initiall-capped.  So "fooBar" lists
+   *   for "fooBar" and gets bound to "onFooBar".
    */
-  constructor(props, canonProp) {
+  constructor(props, canonProp, extraEvents) {
     super(props);
+
+    this._extraEvents = extraEvents;
 
     let repObjResolver;
 
@@ -49,12 +55,24 @@ export default class DirtyingComponent extends React.PureComponent {
 
   componentWillMount() {
     this.repObj.on('dirty', this.onDirty, this);
+    if (this._extraEvents) {
+      for (const eventName of this._extraEvents) {
+        const methodName = eventName[0].toUpperCase() + eventName.slice(1);
+        this.repObj.on(eventName, this[methodName], this);
+      }
+    }
     // Reflect the current actual serial.
     this.onDirty();
   }
 
   componentWillUnmount() {
     this.repObj.removeListener('dirty', this.onDirty, this);
+    if (this._extraEvents) {
+      for (const eventName of this._extraEvents) {
+        const methodName = eventName[0].toUpperCase() + eventName.slice(1);
+        this.repObj.removeListener(eventName, this[methodName], this);
+      }
+    }
   }
 
   onDirty() {

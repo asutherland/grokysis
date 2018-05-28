@@ -9,7 +9,12 @@ import TriceTimelineVis from '../trice_timeline/timeline_vis.jsx';
  */
 export default class TriceTimelineSheet extends React.PureComponent {
   constructor(props) {
-    super(props, 'triceLog');
+    super(props, 'triceLog', ['persistedStateDirty']);
+
+    const triceLog = this.props.triceLog;
+    const sessionThing = this.props.sessionThing;
+
+    triceLog.restoreState(sessionThing.persisted.logPersisted);
 
     // We handle slot message routing, so it's necessary for us to have a ref to
     // the vis to direct it to respond to external stimuli like seeking which
@@ -46,6 +51,16 @@ export default class TriceTimelineSheet extends React.PureComponent {
 
   componentWillUnmount() {
     this.props.sessionThing.stopHandlingSlotMessage('triceLog:vis:seek');
+  }
+
+  onPersistedStateDirty() {
+    const triceLog = this.props.triceLog;
+    const sessionThing = this.props.sessionThing;
+    const oldState = sessionThing.persisted;
+    const newState = Object.assign({}, oldState, {
+      logPersisted: triceLog.toPersisted()
+    });
+    sessionThing.updatePersistedState(newState);
   }
 
   onEventClicked(event) {

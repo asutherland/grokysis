@@ -44,7 +44,7 @@ export default class TriceFilterSheet extends React.PureComponent {
   // enhancement would be to know which vis was clicked and find the closest
   // bin so we can snap to it.
   onClickVisX(x) {
-    this.props.sessionThing.sendSlotMessage('triceLog:vis:seek', { bin: x })
+    this.props.sessionThing.sendSlotMessage('triceLog:vis:seek', { bin: x });
   }
 
   onSeeked({ startBin, endBin }) {
@@ -108,7 +108,7 @@ export default class TriceFilterSheet extends React.PureComponent {
         renderFacet(kidFacet, indent + INDENT_DELTA, fullPath,
                     !facet.included);
       }
-    }
+    };
     for (const topFacet of this.state.log.filterableFacets) {
       renderFacet(topFacet, 0, '', false);
     }

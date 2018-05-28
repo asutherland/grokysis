@@ -46,7 +46,7 @@ export default class TriceLog extends EE {
     this.filteredVisGroups = [];
 
     // ## normalize rawEvents and find time bounds
-    const SCALE = this.SCALE = 100;
+    this.SCALE = 100;
     this.NBINS = 200;
 
     // Do min/max over all the events.  If the logs came from a single process,
@@ -116,7 +116,7 @@ export default class TriceLog extends EE {
               str += segFunc(event);
             }
             return str;
-          }
+          };
         } else {
           info.formatEvent = null;
         }
@@ -134,8 +134,14 @@ export default class TriceLog extends EE {
    * Toggle inclusion of a filter, re-processing all events synchronously.
    * (Although callers should not depend on that, but instead on the "dirty"
    * event being emitted at some point in the future.)
+   *
+   * @param {Boolean} [fromDisk=false]
+   *   If this is coming from an existing disk representation, we don't
+   *   trigger the persisted state dirty notification and we avoid performing
+   *   processEvents() because we assume restoreState() will invoke it for us
+   *   after the batch of changes finishes being applied.
    */
-  toggleFilteringOutFacet(facet) {
+  toggleFilteringOutFacet(facet, fromDisk) {
     const idx = this.filterExcludeFuncs.indexOf(facet.filterExcludeFunc);
     if (facet.included) {
       // should not be in the list already then.
@@ -153,7 +159,81 @@ export default class TriceLog extends EE {
       this.filterExcludeFuncs.splice(idx, 1);
     }
 
-    this.processEvents();
+    if (!fromDisk) {
+      this.emit('persistedStateDirty');
+      this.processEvents();
+    }
+  }
+
+  /**
+   * Actual application of disk state to our in-memory state.
+   *
+   * The basic idea is:
+   * - Traverse our disk facets in parallel with the facets we've derived from
+   *   in-memory state.  If the data on disk didn't give rise to a facet, the
+   *   memory of that facet basically evaporates.
+   *   - This is not the best UX because there's the potential for user intent
+   *     to evaporate over multipe sets of traces that lack specific events
+   *     existing.
+   *   - The rationale for doing this is to avoid the accumulation of hidden
+   *     bogus state that could accumulate massive amounts of buggy data that's
+   *     hidden from view.
+   *   - Some type of more explicit categorization with bulk toggles that can be
+   *     round-tripped back into the toml config and shared is probalby the way
+   *     to go.  For example, there's a bunch of "http" and "image" observer
+   *     events that would benefit from being grouped and these could
+   *     potentially be further grouped into "network" and "graphics".
+   */
+  _applyDiskState(diskRep) {
+    function traverseFacet(diskFacet, facet) {
+      // Toggle if we don't match.
+      if (diskFacet.included !== facet.included) {
+        this.toggleFilteringOutFacet(facet, true);
+      }
+
+      // And traverse children.
+      for (const kidDisk of diskFacet.children) {
+        const kidFacet = facet.childrenByKey.get(kidDisk.name);
+        if (!kidFacet) {
+          continue;
+        }
+
+        traverseFacet(kidDisk, kidFacet);
+      }
+    }
+
+    for (const diskFacet of diskRep.facets) {
+      const facet = this.facetsByName.get(diskFacet.name);
+      // Ignore facets that don't seem relevant to this trace.
+      if (!facet) {
+        continue;
+      }
+      traverseFacet(diskFacet, facet);
+    }
+  }
+
+  restoreState(diskRep) {
+    if (diskRep) {
+      this._applyDiskState(diskRep);
+      this.processEvents();
+    }
+  }
+
+  toPersisted() {
+    function mapFacet(facet) {
+      const children = facet.children.map(mapFacet);
+      return {
+        name: facet.name,
+        included: facet.included,
+        children
+      };
+    }
+
+    const diskFacets = this.filterableFacets.map(mapFacet);
+
+    return {
+      facets: diskFacets
+    };
   }
 
   /**
@@ -183,7 +263,7 @@ export default class TriceLog extends EE {
         return (event.spec === spec &&
                 event.captured &&
                 event.captured[lookupKey] === value);
-      }
+      };
     }
 
     function makeFacet(name, filterExcludeFunc) {
@@ -205,7 +285,7 @@ export default class TriceLog extends EE {
     }
 
     const topFacets = this.filterableFacets = [];
-    const topBySpec = new Map();
+    const topBySpec = this.facetsByName = new Map();
 
     const firstTick = this.firstTick;
     const tickSpan = this.lastTick - this.firstTick;
@@ -354,5 +434,4 @@ export default class TriceLog extends EE {
     const bin = Math.floor(this.NBINS * relTickTime / tickSpan);
     return bin;
   }
-
 }

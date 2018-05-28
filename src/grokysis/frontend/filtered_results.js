@@ -91,7 +91,7 @@ export default class FilteredResults extends EE {
       func: (data) => {
         // return false if the source file's path starts with our path.
         // return true if it does not.
-        return !data.path.startsWith(path)
+        return !data.path.startsWith(path);
       }
     });
   }
