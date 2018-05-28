@@ -30,7 +30,10 @@ export default class TriceLog extends EE {
      */
     this.filterableFacets = [];
 
-    this.filterFuncs = [];
+    /**
+     * We filter out any events for which any of these functions return true.
+     */
+    this.filterExcludeFuncs = [];
 
     /**
      * The result of filtering/faceting rawEvents and producing vis.js timeline
@@ -127,16 +130,73 @@ export default class TriceLog extends EE {
     }
   }
 
+  /**
+   * Toggle inclusion of a filter, re-processing all events synchronously.
+   * (Although callers should not depend on that, but instead on the "dirty"
+   * event being emitted at some point in the future.)
+   */
+  toggleFilteringOutFacet(facet) {
+    const idx = this.filterExcludeFuncs.indexOf(facet.filterExcludeFunc);
+    if (facet.included) {
+      // should not be in the list already then.
+      if (idx !== -1) {
+        throw new Error('filter present but should not be');
+      }
+      facet.included = false;
+      this.filterExcludeFuncs.push(facet.filterExcludeFunc);
+    } else {
+      // should be in the list then
+      if (idx === -1) {
+        throw new Error('filter not present but should be');
+      }
+      facet.included = true;
+      this.filterExcludeFuncs.splice(idx, 1);
+    }
+
+    this.processEvents();
+  }
+
+  /**
+   * Process the events, populating `this.filterableFacets` based on breakpoint
+   * "spec"s at the top-level.  For each breakpoint and its resulting top-level
+   * facet, we also consider any `facetBy` entries in the toml config for that
+   * breakpoint and create child facets under the spec.  This does mean that
+   * currently every breakpoint is independent even when it might be useful to
+   * cluster common sub-facets.  Future work.
+   */
   deriveFilterableFacets() {
     const NBINS = this.NBINS;
 
-    function makeFacet(name) {
+    // make a filter func just based on breakpoint spec
+    function makeSpecFilter(spec) {
+      return (event) => {
+        return (event.spec === spec);
+      };
+    }
+
+    // Make a filter func for a specific captured value for a sub-facet of a
+    // facet for a specific breakpoint.  In the future we might not want to
+    // constrain on the spec for groups of related breakpoints, but instead on a
+    // manually labeled group name or something like that.
+    function makeSpecCapturedFilter(spec, lookupKey, value) {
+      return (event) => {
+        return (event.spec === spec &&
+                event.captured &&
+                event.captured[lookupKey] === value);
+      }
+    }
+
+    function makeFacet(name, filterExcludeFunc) {
       const facet = {
         name,
         count: 0,
         bins: new Array(NBINS),
         children: [],
-        childrenByKey: new Map()
+        childrenByKey: new Map(),
+        // true if the filterExcludeFunc isn't in filterExcludeFuncs, false if
+        // it is.
+        included: true,
+        filterExcludeFunc
       };
       for (let i=0; i < NBINS; i++) {
         facet.bins[i] = 0;
@@ -154,7 +214,7 @@ export default class TriceLog extends EE {
       const spec = event.spec;
       let facet = topBySpec.get(spec);
       if (!facet) {
-        facet = makeFacet(spec);
+        facet = makeFacet(spec, makeSpecFilter(spec));
         topFacets.push(facet);
         topBySpec.set(spec, facet);
       }
@@ -173,7 +233,8 @@ export default class TriceLog extends EE {
         const value = event.captured[lookupKey];
         let kidFacet = facet.childrenByKey.get(value);
         if (!kidFacet) {
-          kidFacet = makeFacet(value);
+          kidFacet = makeFacet(value,
+                               makeSpecCapturedFilter(spec, lookupKey, value));
           facet.children.push(kidFacet);
           facet.childrenByKey.set(value, kidFacet);
         }
@@ -210,6 +271,12 @@ export default class TriceLog extends EE {
     }
   }
 
+  /**
+   * Process events from rawEvents, filtering out those for which any of the
+   * functions in `filterExcludeFuncs` return true, producing `filteredVisItems`
+   * and `filteredVisGroups` suitable for consumption/display by vis.js'
+   * timeline vis.
+   */
   processEvents() {
     const events = this.rawEvents;
     const groups = this.filteredVisGroups = [];
@@ -220,8 +287,16 @@ export default class TriceLog extends EE {
 
     const tidToGroup = new Map();
 
-    for (let iEvent=0; iEvent < events.length; iEvent++) {
+    // outer is a label that allows us to do `continue outer` below in order to
+    // have `continue` target this outer loop rather than the inner loop.
+    outer: for (let iEvent=0; iEvent < events.length; iEvent++) {
       const event = events[iEvent];
+
+      for (const filterFunc of this.filterExcludeFuncs) {
+        if (filterFunc(event)) {
+          continue outer;
+        }
+      }
 
       const tid = event.tid;
 
