@@ -185,7 +185,7 @@ export default class TriceLog extends EE {
    *     potentially be further grouped into "network" and "graphics".
    */
   _applyDiskState(diskRep) {
-    function traverseFacet(diskFacet, facet) {
+    const traverseFacet = (diskFacet, facet) => {
       // Toggle if we don't match.
       if (diskFacet.included !== facet.included) {
         this.toggleFilteringOutFacet(facet, true);
@@ -200,7 +200,7 @@ export default class TriceLog extends EE {
 
         traverseFacet(kidDisk, kidFacet);
       }
-    }
+    };
 
     for (const diskFacet of diskRep.facets) {
       const facet = this.facetsByName.get(diskFacet.name);

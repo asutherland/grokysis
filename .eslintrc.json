@@ -70,7 +70,7 @@
     "space-before-function-paren": 0,
     "space-in-parens": 0,
     "strict": 0,
-    "quotes": [2, "single", "avoid-escape"],
+    "quotes": [0, "single", "avoid-escape"],
     "valid-jsdoc": [0, {
       "prefer": {
         "return": "returns"

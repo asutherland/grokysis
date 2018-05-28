@@ -97,7 +97,11 @@ export default class TriceTimelineVis extends DirtyingComponent {
       zoomMin: 10,
       zoomMax: 1 * 1000 * 1000,
       format: {
-        minorLabels: function(date, scale/*, step*/) {
+        minorLabels: function(date/*, scale/*, step*/) {
+          const relTicks = Math.floor(date * triceLog.SCALE / 1000000);
+          return `${relTicks} MTicks`;
+        },
+        majorLabels: function(date/*, scale/*, step*/) {
           const relTicks = Math.floor(date * triceLog.SCALE / 1000000);
           return `${relTicks} MTicks`;
         }

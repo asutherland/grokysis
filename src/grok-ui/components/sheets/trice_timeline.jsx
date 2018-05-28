@@ -9,7 +9,7 @@ import TriceTimelineVis from '../trice_timeline/timeline_vis.jsx';
  */
 export default class TriceTimelineSheet extends React.PureComponent {
   constructor(props) {
-    super(props, 'triceLog', ['persistedStateDirty']);
+    super(props);
 
     const triceLog = this.props.triceLog;
     const sessionThing = this.props.sessionThing;
@@ -47,10 +47,16 @@ export default class TriceTimelineSheet extends React.PureComponent {
   componentWillMount() {
     this.props.sessionThing.handleSlotMessage(
       'triceLog:vis:seek', this.onSeekRequest);
+
+    this.props.triceLog.on(
+      'persistedStateDirty', this.onPersistedStateDirty, this);
   }
 
   componentWillUnmount() {
     this.props.sessionThing.stopHandlingSlotMessage('triceLog:vis:seek');
+
+    this.props.triceLog.removeListener(
+      'persistedStateDirty', this.onPersistedStateDirty, this);
   }
 
   onPersistedStateDirty() {
@@ -60,6 +66,7 @@ export default class TriceTimelineSheet extends React.PureComponent {
     const newState = Object.assign({}, oldState, {
       logPersisted: triceLog.toPersisted()
     });
+    console.log("updating persisted state", newState, "from", oldState);
     sessionThing.updatePersistedState(newState);
   }
 

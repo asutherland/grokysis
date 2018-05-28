@@ -58,6 +58,7 @@ export default class DirtyingComponent extends React.PureComponent {
     if (this._extraEvents) {
       for (const eventName of this._extraEvents) {
         const methodName = eventName[0].toUpperCase() + eventName.slice(1);
+        console.log('BINDING', eventName, methodName);
         this.repObj.on(eventName, this[methodName], this);
       }
     }
