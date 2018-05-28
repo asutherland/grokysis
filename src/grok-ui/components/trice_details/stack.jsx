@@ -36,6 +36,6 @@ export default class Stack extends React.PureComponent {
           { rows }
         </Table.Body>
       </Table>
-    )
+    );
   }
 }

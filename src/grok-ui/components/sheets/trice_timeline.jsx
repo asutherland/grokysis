@@ -89,7 +89,7 @@ export default class TriceTimelineSheet extends React.PureComponent {
     this.lastSpawnedSheet = performance.now();
   }
 
-  onFiltersClicked(event) {
+  onFiltersClicked() {
     if (performance.now() - this.lastSpawnedFilters < 3000) {
       return;
     }

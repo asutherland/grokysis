@@ -30,6 +30,6 @@ export default class CapturedData extends React.PureComponent {
           { rows }
         </Table.Body>
       </Table>
-    )
+    );
   }
 }
