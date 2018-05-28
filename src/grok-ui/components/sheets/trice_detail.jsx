@@ -1,5 +1,7 @@
 import React from 'react';
 
+import CapturedData from '../trice_details/captured_data.jsx';
+import Stack from '../trice_details/stack.jsx';
 
 /**
  * Displays the focused events in a Trice Log sheet.
@@ -42,8 +44,8 @@ export default class TriceDetailSheet extends React.Component {
         <div>tid: { event.tid }</div>
         <div>tname: { event.tname }</div>
         <div>spec: { event.spec }</div>
-        <pre>{ JSON.stringify(event.captured, 2) }</pre>
-        <pre>{ JSON.stringify(event.stack, 2) }</pre>
+        <CapturedData captured={ event.captured } />
+        <Stack stack={ event.stack } />
         <pre>{ event.jsstack }</pre>
       </div>
     );

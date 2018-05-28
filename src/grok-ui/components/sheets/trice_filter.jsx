@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table } from 'semantic-ui-react'
+import { Table } from 'semantic-ui-react';
 
 import HorizonVis from '../trice_timeline/horizon_vis.jsx';
 
