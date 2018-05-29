@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Accordion, Button, Icon } from 'semantic-ui-react';
+import { Accordion, Button, Container, Icon } from 'semantic-ui-react';
 
 import './notebook_sheet.css';
 
@@ -119,4 +119,4 @@ export default class NotebookSheet extends React.Component {
       </Accordion>
     );
   }
-};
+}

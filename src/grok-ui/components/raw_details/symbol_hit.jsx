@@ -1,5 +1,8 @@
 import React from 'react';
 
+import { Card } from 'semantic-ui-react';
+
+
 import HitDict from './hit_dict.jsx';
 import PathHitList from './path_hit_list.jsx';
 
@@ -20,12 +23,16 @@ export default class SymbolHit extends React.PureComponent {
     };
 
     return (
-      <div>
-        <div className="symbolHit__symbol">{ symbolName }</div>
-        <div className="symbolHit__hitDict">
-          <HitDict hitDict={ hitDict } contentFactory={ contentFactory }/>
-        </div>
-      </div>
+      <Card fluid>
+        <Card.Content className="symbolHit__hitDict">
+          <Card.Header as='h3' className="symbolHit__symbol">{ symbolName }</Card.Header>
+        </Card.Content>
+        <HitDict
+          hitDict={ hitDict }
+          contentFactory={ contentFactory }
+          menu={{ attached: 'top' }}
+          />
+      </Card>
     );
   }
 }

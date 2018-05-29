@@ -35,15 +35,20 @@ export default class HitDict extends React.PureComponent {
       panes.push({
         menuItem: `${key} (${ valuesCount })`,
         render: () => {
-          return this.props.contentFactory(values, key)
+          const body = this.props.contentFactory(values, key);
+          return (
+            <Tab.Pane>
+              { body }
+            </Tab.Pane>
+          );
         }
       });
     }
 
-    const hit = this.props.obj;
     return (
       <Tab className="hitDict"
         panes={ panes }
+        menu={ this.props.menu }
         />
     );
   }

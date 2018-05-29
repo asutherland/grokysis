@@ -1,7 +1,13 @@
 .symbolHit__symbol {
-
+  /* the header has a negative margin due to card specialization, we don't want
+     it, consistent with the logic below about centering visually.  Because of
+     the specialization we need to mark this important. */
+  margin-top: 0 !important;
 }
 
 .symbolHit__hitDict {
-
+  /* the hit-dict wants to be a vertically centered header within its visual
+     rect w/border.  It's not preceding content where the extra padding is
+     useful, visually speaking.  It leads into tab-ish card segmentation. */
+  padding-bottom: 0.5em !important;
 }

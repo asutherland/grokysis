@@ -6,4 +6,8 @@
 }
 
 .notebookSheet__content {
+  /* I screw this up in grok-ui.css in order to get the splitter component to
+   * work.  It's necessary we restore this here or semantic-ui's Tab binding
+   * ends up broken. */
+  box-sizing: border-box;
 }
