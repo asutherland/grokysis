@@ -11,7 +11,7 @@ export default class LineHit extends React.Component {
     return (
       <div className="lineHit">
         <div className="lineHit__lineNo">{ hit.lno }: </div>
-        <div className="lineHit__lineContents">{ hit.line }</div>
+        <div className="lineHit__lineContents">{ hit.peekLines || hit.line }</div>
         { hit.context ? (<div className="lineHit__lineContext">({hit.context})</div>) : null }
       </div>
     );
