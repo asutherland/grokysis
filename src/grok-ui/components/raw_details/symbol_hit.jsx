@@ -19,7 +19,9 @@ export default class SymbolHit extends React.PureComponent {
     const { symbolName, hitDict } = this.props;
 
     const contentFactory = (pathHits, selected) => {
-      return <PathHitList pathHits={ pathHits || [] } />;
+      // We propagate selected as 'group' for keying purposes so accordion
+      // state doesn't contaminate when switching between groups.
+      return <PathHitList group={ selected } pathHits={ pathHits || [] } />;
     };
 
     return (

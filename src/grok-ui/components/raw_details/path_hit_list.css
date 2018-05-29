@@ -1,0 +1,20 @@
+.pathHitList__container {
+  /* The default padding for our containing segment parent is a bit much given
+     the vertical whitespace we already use, so use a negative margin to eat
+     the padding. */
+  margin: -0.5em 0;
+}
+
+.pathHitList__container .accordion {
+  /* The selector that adds the border is ".ui.styled.accodrion .accordion"
+     which compels an unstyled accordion nested under a styled accordion to be
+     styled, so we need to clobber this stuff out. */
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+
+.pathHitList__container .accordion .title {
+  /* uh, yeah, and we want to rein in the padding a bit too. */
+  padding: 0 !important;
+}

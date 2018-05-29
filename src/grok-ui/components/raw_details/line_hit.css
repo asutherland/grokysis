@@ -17,5 +17,6 @@
 
 .lineHit__lineContext {
   display: inline-block;
+  margin-left: 1rem;
   color: mediumseagreen;
 }
