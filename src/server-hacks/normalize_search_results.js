@@ -194,6 +194,8 @@ function normalizeSearchResults(orig) {
           symbol = qk.slice(6, -1);
           stashSymbolInfo(symMap, symbol, "uses", value);
           break;
+        default:
+          throw new Error('unknown qkind: ' + qk);
       }
     }
 
