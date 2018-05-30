@@ -1,4 +1,7 @@
-const HACKY_SERVER_BASE = 'http://localhost:3000';
+//const HACKY_SERVER_BASE = 'http://localhost:3000';
+// Uh, use relative URL's since we expect it to be us doing the serving right
+// now.  (Or more specifically our server.js.)
+const HACKY_SERVER_BASE = '';
 // Base URL for proxied search queries.
 const HACKY_SERVER_SEARCH = `${HACKY_SERVER_BASE}/sf/search`;
 // Base URL to get the HTML syntax-highlighted code plus node-sitter AST tree
