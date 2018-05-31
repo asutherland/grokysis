@@ -61,7 +61,7 @@ export default class KnowledgeBase {
         }
       }
       return null;
-    }
+    };
 
     const markMethodBounds = (namespace, localId, boundingNode) => {
       let fullName = namespace;
@@ -275,7 +275,6 @@ export default class KnowledgeBase {
     const boundsByLine = this._extractMethodBoundariesFromAST(data.ast);
 
     console.log('line bounds', boundsByLine);
-    return;
 
     // NOTE this is where we're touching DOM stuff that necessitates we be on
     // the main thread.
@@ -312,6 +311,11 @@ export default class KnowledgeBase {
      * perfect.
      */
     let anData;
+    /**
+     * This is a processed version of the above is a filtered version of each
+     * `jumps` so that only entries corresponding to
+     */
+    let callDex;
     try {
       // hdoc is a data document and doesn't have an associated window at this
       // point.  As much fun as it would be to stick it in an iframe, that's
@@ -323,7 +327,43 @@ export default class KnowledgeBase {
       const idxLastBracket = adScriptStr.lastIndexOf(']');
 
       anData =
-        JSON.parse(adScriptStr.substring(idxFirstBracket, idxLastBracket));
+        JSON.parse(adScriptStr.substring(idxFirstBracket, idxLastBracket + 1));
+
+      callDex = new Array(anData.length);
+      for (let iSym=0; iSym < anData.length; iSym++) {
+        const [jumps, searches] = anData[iSym];
+        if (!jumps || !jumps.length || jumps.length !== searches.length) {
+          continue;
+        }
+        let use = null;
+        for (let i=0; i < jumps.length; i++) {
+          const jump = jumps[i];
+          const search = searches[i];
+          const type = search.pretty.split(' ', 1)[0];
+          switch (type) {
+            default:
+              console.warn('unsupported symbol type:', type);
+              continue;
+            case 'constructor':
+            case 'function':
+              // do use, fall out.
+              break;
+            // These are the ones not to use, so we continue the loop.
+            case 'type':
+            case 'macro':
+            case 'field':
+            case 'variable':
+            case 'enum':
+              continue;
+          }
+
+          if (!use) {
+            use = [];
+          }
+          use.push(jump);
+        }
+        callDex[iSym] = use;
+      }
     } catch (ex) {
       console.warn('problem parsing out ANALYSIS_DATA:', ex);
     }
@@ -335,9 +375,29 @@ export default class KnowledgeBase {
         // ZERO-based line number.
         const iLine = parseInt(eLine.getAttribute('aria-labelledby'), 10) - 1;
 
+        const methodSym = boundsByLine[iLine];
+        if (!methodSym) {
+          continue;
+        }
+
+        // We only care about potential calls, which means only elements with
+        // a "data-i" attribute.  Each line has a minimal set of children, so
+        // this is more about reflecting fewer things into JS than about any
+        // O() complexity.
+        for (const eKid of eLine.querySelectorAll('[data-i]')) {
+          const jumpIdx = parseInt(eKid.dataset.i, 10);
+
+          const jumps = callDex[jumpIdx];
+          if (!jumps) {
+            continue;
+          }
+          for (const { sym, pretty } of jumps) {
+            console.log(methodSym, '->', pretty);
+          }
+        }
       }
     } catch (ex) {
-      console.warn('problem processing searchfox html:', ex)
+      console.warn('problem processing searchfox html:', ex);
     }
 
 
