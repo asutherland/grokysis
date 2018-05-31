@@ -1,12 +1,11 @@
-const { Document } = require('tree-sitter');
+const Parser = require('tree-sitter');
 
 const treeSitterCpp = require('tree-sitter-cpp');
 
 function parseSourceToJsonable(docStr, filePath) {
-  const document = new Document();
-  document.setLanguage(treeSitterCpp);
-  document.setInputString(docStr);
-  document.parse();
+  const parser = new Parser();
+  parser.setLanguage(treeSitterCpp);
+  const tree = parser.parse(docStr);
 
   function transform(node) {
     const o = {};
@@ -26,8 +25,8 @@ function parseSourceToJsonable(docStr, filePath) {
     return o;
   }
 
-  const bePretty = true;
-  return transform(document.rootNode);
+  //const bePretty = true;
+  return transform(tree.rootNode);
 }
 
 module.exports = parseSourceToJsonable;

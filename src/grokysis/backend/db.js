@@ -6,7 +6,7 @@ const DB_SESSION_THINGS = 'session-things';
 export default class BackendDB {
   constructor({ name }) {
     this.dbName = `grok-${name}`;
-    this.dbVersion = 3; // want static properties.
+    this.dbVersion = 4; // want static properties.
     this.db = null;
   }
 

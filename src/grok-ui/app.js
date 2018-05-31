@@ -9,6 +9,8 @@ import {
 
 import SessionNotebookContainer from './components/session_notebook/session_notebook_container.jsx';
 
+import KBFileViewSheet from './components/sheets/kb_file_view.jsx';
+
 import SearchFieldSheet from './components/sheets/search_field.jsx';
 import SearchResultsSheet from './components/sheets/search_results.jsx';
 
@@ -57,6 +59,10 @@ class GrokApp extends React.Component {
               }
             },
             {
+              type: 'fileView',
+              persisted: {}
+            },
+            {
               type: 'diagram',
               persisted: {}
             }
@@ -99,6 +105,30 @@ class GrokApp extends React.Component {
                 );
               }
             };
+          },
+
+          // ## grokysis analysis related
+          fileView: (persisted, grokCtx) => {
+            // XXX obviously, a hardcoded URL is not appropriate...
+            // This is currently the result of fetching
+            // http://localhost:3000/sf/spage/dom/serviceworkers/ServiceWorkerRegistrar.cpp
+            // and saving it to a file so we can avoid the repeated processing.
+            // So this could be dynamic and I could do various things with
+            // headers and Blobs and Responses and stuff, but this works now.
+            const url = 'http://localhost/logs/ServiceWorkerRegistrar.cpp.json';
+            const pendingFile = grokCtx.kb.analyzeFile(url);
+
+            return {
+              labelWidget: 'Grokysis File Analysis View',
+              contentPromise: pendingFile,
+              contentFactory: (props, resultFile) => {
+                return (
+                  <KBFileViewSheet {...props}
+                    kbFile={ resultFile }
+                    />
+                );
+              }
+            }
           },
 
           // ## Diagramming from Searchfox Exploration
@@ -175,13 +205,6 @@ class GrokApp extends React.Component {
   }
 
   render() {
-    const explorationProps = {
-      grokCtx: this.state.grokCtx
-    };
-    const artifactProps = {
-      grokCtx: this.state.grokCtx
-    }
-
     return (
       <ReflexContainer className="grokApp" orientation="vertical">
         <ReflexElement className="left-pane">

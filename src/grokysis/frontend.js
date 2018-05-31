@@ -26,6 +26,11 @@ class GrokAnalysisFrontend {
         return this._sendAndAwaitReply('deleteSessionThingById', thingId);
       });
 
+    this.kb = new KnowledgeBase({
+      name: this.name,
+      grokCtx: this
+    });
+
     const { backend, useAsPort } = makeBackend();
     this._backend = backend; // the direct destructuring syntax is confusing.
     this._port = useAsPort;
