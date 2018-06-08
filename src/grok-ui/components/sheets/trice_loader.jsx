@@ -41,7 +41,7 @@ export default class TriceLoaderSheet extends React.Component {
             <input
                defaultValue={ this.props.sessionThing.persisted.url }
                type="text"
-               ref={(input) => this.triceInput = input} />
+               ref={(input) => { this.triceInput = input; }} />
           </label>
         </div>
         <div>
@@ -50,7 +50,7 @@ export default class TriceLoaderSheet extends React.Component {
             <input
                defaultValue={ this.props.sessionThing.persisted.tomlUrl }
                type="text"
-               ref={(input) => this.tomlInput = input} />
+               ref={(input) => { this.tomlInput = input; }} />
           </label>
         </div>
         <input type="submit" value="Load" />

@@ -1,5 +1,5 @@
 {
-  "extends": "eslint:recommended",
+  "extends": ["eslint:recommended", "plugin:react/recommended"],
   "parser": "babel-eslint",
   "env": {
     "amd": true,
@@ -64,6 +64,7 @@
     "no-void": 2,
     "no-with": 2,
     "padded-blocks": [2, "never"],
+    "react/prop-types": 0,
     "require-yield": 2,
     "semi": [2, "always"],
     "semi-spacing": 0,

@@ -47,7 +47,7 @@ const SEARCHFOX_BASE = 'https://searchfox.org';
 const SEARCHFOX_TREE_BASE = `${SEARCHFOX_BASE}/mozilla-central`;
 const SEARCHFOX_SEARCH_URL = `${SEARCHFOX_TREE_BASE}/search`;
 
-const HG_BASE = 'https://hg.mozilla.org'
+const HG_BASE = 'https://hg.mozilla.org';
 const HG_TREE_BASE = `${HG_BASE}/mozilla-central`;
 
 const HG_QUOTED_REV_LINK_RE = new RegExp(`"${HG_TREE_BASE}/rev/([^"]+)"`);

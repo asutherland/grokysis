@@ -34,7 +34,7 @@ export default class HorizonVis extends React.PureComponent {
     this.componentDidMount();
   }
 
-  onClick(data, index/*, group */) {
+  onClick(/*data, /*index/*, group */) {
     //console.log('click', data, index, group, event);
     //console.log('mouse info', mouse(event.target));
     // send the x coordinate

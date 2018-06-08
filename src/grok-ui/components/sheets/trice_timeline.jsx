@@ -48,7 +48,7 @@ export default class TriceTimelineSheet extends React.PureComponent {
     this.onMoveNext = this.onMoveNext.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.props.sessionThing.handleSlotMessage(
       'triceLog:vis:seek', this.onSeekRequest);
 

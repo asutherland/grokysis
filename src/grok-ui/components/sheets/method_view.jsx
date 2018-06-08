@@ -1,8 +1,5 @@
 import React from 'react';
 
-import CapturedData from '../trice_details/captured_data.jsx';
-import Stack from '../trice_details/stack.jsx';
-
 /**
  * Displays a variety of views of a searchfox-indexed function/method.  The
  * current plan is to have 2 tabbed views:
@@ -21,7 +18,7 @@ export default class MethodViewSheet extends React.Component {
     this.onEventSelected = this.onEventSelected.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.props.sessionThing.handleSlotMessage(
       'triceLog:eventFocused', this.onEventSelected);
   }
@@ -35,7 +32,6 @@ export default class MethodViewSheet extends React.Component {
   }
 
   render() {
-
     return (
       <div>
       </div>

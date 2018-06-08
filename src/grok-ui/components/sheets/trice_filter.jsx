@@ -24,7 +24,7 @@ export default class TriceFilterSheet extends React.PureComponent {
     this.onClickVisX = this.onClickVisX.bind(this);
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.props.sessionThing.handleSlotMessage(
       'triceLog:filters:hello', this.onLogHello);
     this.props.sessionThing.handleSlotMessage(

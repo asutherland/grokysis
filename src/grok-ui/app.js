@@ -34,10 +34,10 @@ import './grok-ui.css';
  * eventually show up.
  */
 class GrokApp extends React.Component {
-  constructor(props) {
-    super(props);
+  constructor(appProps) {
+    super(appProps);
 
-    const grokCtx = new GrokAnalysisFrontend({
+    const outerGrokCtx = new GrokAnalysisFrontend({
       // For now, there's just a single session.
       session: {
         name: 'main',
@@ -75,14 +75,14 @@ class GrokApp extends React.Component {
             return {
               labelWidget: 'Searchfox Search',
               contentPromise: null,
-              contentFactory: (props, data) => {
+              contentFactory: (props/*, data*/) => {
                 return (
                   <SearchFieldSheet {...props}
                     initialValue={ initialValue }
                     />
                 );
               }
-            }
+            };
           },
 
           searchResult: ({ searchText }, grokCtx) => {
@@ -128,35 +128,35 @@ class GrokApp extends React.Component {
                     />
                 );
               }
-            }
+            };
           },
 
           // ## Diagramming from Searchfox Exploration
-          diagram: (persisted, grokCtx) => {
+          diagram: (/*persisted/*, grokCtx*/) => {
             return {
               labelWidget: 'Diagram',
               awaitContent: null,
-              contentFactory: (props) => {
+              contentFactory: (/*props*/) => {
                 return <div>Not yet implemented.</div>;
               }
             };
           },
 
           // ## Trice Log Visualization
-          triceLoader: ({ initialValue }) => {
+          triceLoader: () => {
             return {
               labelWidget: 'Load Trice Log',
               contentPromise: null,
-              contentFactory: (props, data) => {
+              contentFactory: (props/*, data*/) => {
                 return (
                   <TriceLoaderSheet {...props}
                     />
                 );
               }
-            }
+            };
           },
 
-          triceTimeline: (persisted) => {
+          triceTimeline: (persisted, grokCtx) => {
             const pendingTriceLog = grokCtx.loadTriceLog(persisted);
 
             return {
@@ -200,7 +200,7 @@ class GrokApp extends React.Component {
     });
 
     this.state = {
-      grokCtx
+      grokCtx: outerGrokCtx
     };
   }
 

@@ -2,7 +2,7 @@ const Parser = require('tree-sitter');
 
 const treeSitterCpp = require('tree-sitter-cpp');
 
-function parseSourceToJsonable(docStr, filePath) {
+function parseSourceToJsonable(docStr) {
   const parser = new Parser();
   parser.setLanguage(treeSitterCpp);
   const tree = parser.parse(docStr);

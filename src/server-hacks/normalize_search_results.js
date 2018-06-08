@@ -49,7 +49,6 @@
  * This logic is derived from my original graphviz efforts and could be cleaner.
  */
 function normalizeSearchResults(orig) {
-
   // Helper to partition the contents of a hitList into two separate hitLists.
   // Our motivating example is separating forward declarations from normal
   // declarations because forward declarations are boring 99% of the time.

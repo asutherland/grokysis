@@ -19,7 +19,6 @@ import SymbolInfo from './kb/symbol_info.js';
 export default class KnowledgeBase {
   constructor() {
     this.symbolsByPrettyName = new Map();
-
   }
 
   /**
@@ -34,6 +33,8 @@ export default class KnowledgeBase {
 
     symInfo = new SymbolInfo({ prettyName });
     this.symbolsByPrettyName.set(prettyName, symInfo);
+
+    return symInfo;
   }
 
   /**
@@ -371,6 +372,7 @@ export default class KnowledgeBase {
     try {
       const codePre = hdoc.querySelector('#file tbody tr td.code pre');
 
+      // ## Process the HTML along method boundaries.
       for (const eLine of codePre.children) {
         // ZERO-based line number.
         const iLine = parseInt(eLine.getAttribute('aria-labelledby'), 10) - 1;
@@ -391,7 +393,7 @@ export default class KnowledgeBase {
           if (!jumps) {
             continue;
           }
-          for (const { sym, pretty } of jumps) {
+          for (const { /*sym,*/ pretty } of jumps) {
             console.log(methodSym, '->', pretty);
           }
         }
@@ -402,6 +404,5 @@ export default class KnowledgeBase {
 
 
     // ##
-
   }
-};
+}
