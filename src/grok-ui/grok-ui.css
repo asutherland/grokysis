@@ -21,3 +21,46 @@ body, .grok-ui-root {
 .reflex-splitter {
   height: initial !important;
 }
+
+
+/* ## SEARCHFOX ## */
+/* line number style */
+.line-number {
+    display: block;
+    cursor: pointer;
+    -moz-user-select: none;
+    -o-user-select: none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    text-align: right;
+    padding: 0 0.5rem;
+    position: relative;
+}
+
+/* Searchfox syntax highlighting CSS */
+.syn_type {
+    color: teal;
+}
+
+.syn_def {
+    font-weight: 600;
+}
+
+.syn_string {
+    color: green;
+}
+
+.syn_comment {
+    color: darkred;
+}
+
+.syn_tag,
+.syn_reserved {
+    color: blue;
+}
+
+.syn_regex {
+    color: #6d7b8d;
+}
