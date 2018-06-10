@@ -85,6 +85,10 @@ class BackendRouter {
     return this.searchDriver.performSearch(searchArgs)
   }
 
+  msg_fetchFile(fetchArgs) {
+    return this.searchDriver.fetchFile(fetchArgs);
+  }
+
   msg_loadTriceLog(loadArgs, msgId) {
     return loadTriceLog(loadArgs);
   }

@@ -116,6 +116,18 @@ class GrokAnalysisFrontend {
     return filtered;
   }
 
+  // NB: This is more than a little dumb.  We do the fetch of a large JSON
+  // payload on the other side, doing the JSON decoding there, and then we
+  // post that back over here to the main thread.  This is the motivating HTML
+  // parsing case, but this is just extra silly is all.
+  async fetchFile(fetchArgs) {
+    const wireResults = await this._sendAndAwaitReply(
+      "fetchFile",
+      fetchArgs
+    );
+    return wireResults;
+  }
+
   async loadTriceLog(args) {
     const wireResults = await this._sendAndAwaitReply(
       "loadTriceLog",

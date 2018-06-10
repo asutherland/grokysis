@@ -109,14 +109,9 @@ class GrokApp extends React.Component {
 
           // ## grokysis analysis related
           fileView: (persisted, grokCtx) => {
-            // XXX obviously, a hardcoded URL is not appropriate...
-            // This is currently the result of fetching
-            // http://localhost:3000/sf/spage/dom/serviceworkers/ServiceWorkerRegistrar.cpp
-            // and saving it to a file so we can avoid the repeated processing.
-            // So this could be dynamic and I could do various things with
-            // headers and Blobs and Responses and stuff, but this works now.
-            const url = 'http://localhost/logs/ServiceWorkerRegistrar.cpp.json';
-            const pendingFile = grokCtx.kb.analyzeFile(url);
+            // XXX obviously, this hardcoding is bad.
+            const pendingFile = grokCtx.kb.ensureFileAnalysis(
+              'dom/serviceworkers/ServiceWorkerRegistrar.cpp');
 
             return {
               labelWidget: 'Grokysis File Analysis View',
