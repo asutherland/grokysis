@@ -9,6 +9,14 @@ function findNonWS(str) {
   return -1;
 }
 
+function stripPrettyTypePrefix(prefixedPretty) {
+  const idxSpace = prefixedPretty.indexOf(' ');
+  if (idxSpace === -1) {
+    throw new Error('you got jumps and searches confused again');
+  }
+  return prefixedPretty.substring(idxSpace + 1);
+}
+
 /**
  * We could have a list of searches where one is a type and one is the
  * constructor.  For the given search entry we pick, that could have multiple
@@ -457,7 +465,9 @@ export default class FileAnalyzer {
               const [jumps, searches] = anData[jumpIdx];
               // Resolve the symbol and put it in the per-line symbol list.
               const isDef = jumps.length === 0; // defs have no jumps.
-              if (isDef) {
+              // XXX hack here to avoid getting tricked by types that we don't
+              // have jumps for.  This works unconscionably well.
+              if (isDef && !searches[0].pretty.startsWith('type ')) {
                 lastDefSearches = searches;
               }
               // Okay, right, so there may be multiple search entries, and these
@@ -533,7 +543,7 @@ export default class FileAnalyzer {
             const rawSym = pickBestSymbolFromSearches(lastDefSearches);
             // and our direct lastDefSearches[0] accordingly assumes the impl.
             curSym = this.kb.lookupRawSymbol(
-              rawSym, false, lastDefSearches[0].pretty);
+              rawSym, false, stripPrettyTypePrefix(lastDefSearches[0].pretty));
             curSym.sourceFragment = curFragment;
 
             finfo.fileSymbolDefs.add(curSym);

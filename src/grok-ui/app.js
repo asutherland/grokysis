@@ -109,12 +109,13 @@ class GrokApp extends React.Component {
 
           // ## grokysis analysis related
           fileView: (persisted, grokCtx) => {
-            // XXX obviously, this hardcoding is bad.
-            const pendingFile = grokCtx.kb.ensureFileAnalysis(
-              'dom/serviceworkers/ServiceWorkerRegistrar.cpp');
+            // we're no longer quite as evilly hardcoded!
+            const path = persisted.path ||
+              'dom/serviceworkers/ServiceWorkerRegistrar.cpp';
+            const pendingFile = grokCtx.kb.ensureFileAnalysis(path);
 
             return {
-              labelWidget: 'Grokysis File Analysis View',
+              labelWidget: `File Info: ${path}`,
               contentPromise: pendingFile,
               contentFactory: (props, resultFile) => {
                 return (

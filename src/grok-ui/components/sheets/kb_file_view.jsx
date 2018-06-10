@@ -1,22 +1,18 @@
 import React from 'react';
 
+import KBFile from '../kb_details/kb_file.jsx';
+
 /**
- * Development variant of MethodViewSheet that helps iterate on what will power
- * MethodViewSheet.
+ * Eh, just show the file info widget and be done with it.
  */
 export default class KBFileViewSheet extends React.Component {
   constructor(props) {
     super(props);
-
-    this.state = {
-      event: null
-    };
   }
 
   render() {
     return (
-      <div>
-      </div>
+      <KBFile {...this.props} />
     );
   }
 }
