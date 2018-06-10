@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Header, List } from 'semantic-ui-react';
+import { List } from 'semantic-ui-react';
 
 import DirtyingComponent from '../dirtying_component.js';
 
@@ -11,7 +11,10 @@ export default class KBFile extends DirtyingComponent {
   }
 
   onSymbolClicked(symInfo) {
-
+    this.props.sessionThing.addThingInOtherTrack({
+      type: 'symbolView',
+      persisted: { rawSymbol: symInfo.rawName },
+    });
   }
 
   render() {

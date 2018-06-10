@@ -64,6 +64,7 @@
     "no-void": 2,
     "no-with": 2,
     "padded-blocks": [2, "never"],
+    "react/display-name": 0,
     "react/prop-types": 0,
     "require-yield": 2,
     "semi": [2, "always"],

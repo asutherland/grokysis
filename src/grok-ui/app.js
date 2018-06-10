@@ -10,6 +10,7 @@ import {
 import SessionNotebookContainer from './components/session_notebook/session_notebook_container.jsx';
 
 import KBFileViewSheet from './components/sheets/kb_file_view.jsx';
+import KBSymbolViewSheet from './components/sheets/kb_symbol_view.jsx';
 
 import SearchFieldSheet from './components/sheets/search_field.jsx';
 import SearchResultsSheet from './components/sheets/search_results.jsx';
@@ -121,6 +122,22 @@ class GrokApp extends React.Component {
                 return (
                   <KBFileViewSheet {...props}
                     kbFile={ resultFile }
+                    />
+                );
+              }
+            };
+          },
+
+          symbolView: (persisted, grokCtx) => {
+            const symInfo = grokCtx.kb.lookupRawSymbol(persisted.rawSymbol);
+
+            return {
+              labelWidget: `Symbol: ${ symInfo.rawName }`,
+              contentPromise: null,
+              contentFactory: (props) => {
+                return (
+                  <KBSymbolViewSheet {...props}
+                    symInfo={ symInfo }
                     />
                 );
               }

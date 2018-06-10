@@ -500,6 +500,9 @@ export default class FileAnalyzer {
           // falsey means exiting back to not inside a method at all.
           if (!newLineObj) {
             curMethod = null;
+            if (curSym) {
+              curSym.markDirty();
+            }
             curSym = null;
             curFragment = null;
           } else {
@@ -511,6 +514,9 @@ export default class FileAnalyzer {
                 // definition lip.  We want to ignore this, but we want to make
                 // sure that we handle a multi-line lip, so null out only the
                 // symbol
+                if (curSym) {
+                  curSym.markDirty();
+                }
                 curSym = null;
               } else {
                 // Okay, this is not the method we were processing, so let's
@@ -562,6 +568,10 @@ export default class FileAnalyzer {
             }
           }
         }
+      }
+
+      if (curSym) {
+        curSym.markDirty();
       }
     } catch (ex) {
       console.warn('problem processing searchfox html:', ex);
