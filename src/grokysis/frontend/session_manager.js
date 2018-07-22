@@ -1,7 +1,8 @@
 import EE from 'eventemitter3';
 
-import SessionTrack from './session_track';
-import SessionThing from './session_thing';
+import SessionTrack from './session_track.js';
+//import SessionThing from './session_thing.js';
+import SessionPopupManager from './session_popup_manager.js';
 
 /**
  * Session management and routing that builds on top of the notebook metaphor.
@@ -70,8 +71,8 @@ import SessionThing from './session_thing';
  *
  */
 export default class SessionManager extends EE {
-  constructor({ name, tracks, defaults, bindings }, grokCtx, persistToDB,
-                deleteFromDB) {
+  constructor({ name, tracks, defaults, popupBindings, sheetBindings }, grokCtx,
+              persistToDB, deleteFromDB) {
     super();
 
     this.name = name;
@@ -79,11 +80,14 @@ export default class SessionManager extends EE {
     this.trackNames = tracks;
     /** object dict keyed by track name and with a list of addSheet args. */
     this.defaults = defaults;
-    /** object dict keyed by binding name and with factory function values. */
-    this.bindings = bindings;
+    // see class doc-block
+    this.bindings = sheetBindings;
+    this.popupBindings = popupBindings;
+
+    this.popupManager = new SessionPopupManager(this);
 
     this.slotNameToBindingType = new Map();
-    for (const [type, binding] of Object.entries(bindings)) {
+    for (const [type, binding] of Object.entries(sheetBindings)) {
       if (binding.slotName) {
         this.slotNameToBindingType.set(binding.slotName, type);
       }

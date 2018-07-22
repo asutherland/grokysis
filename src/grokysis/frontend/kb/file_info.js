@@ -37,6 +37,7 @@ export default class FileInfo extends EE {
      *   it, it will be a stub.
      */
     this.lineToSymbolBounds = [];
+    this.dataIndexToSymbolBounds = [];
   }
 
   markDirty() {

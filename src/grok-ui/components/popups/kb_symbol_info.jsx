@@ -1,12 +1,21 @@
 import React from 'react';
 
-import { List, Tab } from 'semantic-ui-react';
+import { Header, List, Tab } from 'semantic-ui-react';
 
 import DirtyingComponent from '../dirtying_component.js';
 
-import SymSource from './sym_source.jsx';
+import SymSource from '../kb_details/sym_source.jsx';
 
-export default class KBSymbol extends DirtyingComponent {
+/**
+ * Derived from `kb_details/kb_symbol.jsx`.  There's an asymmetry there where
+ * this widget roughly corresponds to `sheets/kb_symbol_view.jsx`, which is
+ * just a wrapper around the former.  The rationale there is that sheets are
+ * supposed to be glue layers to the session infrastructure around somewhat
+ * generic widgets.  We, however, are a popup that has a very specific purpose
+ * and nowhere near the same screen real-estate budget, so we get to be a
+ * specific widget.  That said, ideally we can reuse some simpler widgets.
+ */
+export default class KBSymbolInfo extends DirtyingComponent {
   constructor(props) {
     super(props, 'symInfo');
   }
@@ -25,14 +34,19 @@ export default class KBSymbol extends DirtyingComponent {
 
     let maybeSource;
     if (symInfo.sourceFragment) {
-      maybeSource = (
-        <SymSource
-          symInfo={ symInfo }
-          sessionThing={ this.props.sessionThing }
-          />
-      );
+      maybeSource = <SymSource symInfo={ symInfo } />;
     }
 
+    panes.push({
+      menuItem: 'Overview',
+      render: () => {
+        return (
+          <Tab.Pane>
+            Type: { symInfo.type }
+          </Tab.Pane>
+        );
+      }
+    });
     panes.push({
       menuItem: 'Source',
       render: () => {
@@ -67,10 +81,14 @@ export default class KBSymbol extends DirtyingComponent {
     });
 
     return (
-      <Tab
-        menu={{ attached: 'top' }}
-        panes={ panes }
-        />
+      <React.Fragment>
+        <Header as='h3'>{ symInfo.prettiestName }</Header>
+        <Tab
+          menu={{ attached: true }}
+          menuPosition='left'
+          panes={ panes }
+          />
+      </React.Fragment>
     );
   }
 }

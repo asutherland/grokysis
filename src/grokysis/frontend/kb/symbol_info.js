@@ -54,14 +54,30 @@ export default class SymbolInfo extends EE {
     this.receivesCallsFrom = new Set();
 
     /**
-     * HTML document fragment containing the source for the method.
+     * HTML document fragment containing the declaration/prototype for the
+     * symbol.
+     */
+    this.declFragment = null;
+    this.declFileInfo = null;
+
+    /**
+     * HTML document fragment containing the source/definition for the method.
      */
     this.sourceFragment = null;
+    /**
+     * The FileInfo where the definition for this symbol was found.  This is
+     * essential to be able to resolve data-i references.
+     */
+    this.sourceFileInfo = null;
   }
 
   markDirty() {
     this.serial++;
     this.emit('dirty');
+  }
+
+  get prettiestName() {
+    return this.prettyName || this.rawName;
   }
 
   /**

@@ -7,7 +7,12 @@ import {
   ReflexElement
 } from 'react-reflex';
 
-import SessionNotebookContainer from './components/session_notebook/session_notebook_container.jsx';
+import SessionNotebookContainer from
+  './components/session_notebook/session_notebook_container.jsx';
+import SessionPopupContainer from
+  './components/session_notebook/session_popup_container.jsx';
+
+import KBSymbolInfoPopup from './components/popups/kb_symbol_info.jsx';
 
 import KBFileViewSheet from './components/sheets/kb_file_view.jsx';
 import KBSymbolViewSheet from './components/sheets/kb_symbol_view.jsx';
@@ -70,7 +75,25 @@ class GrokApp extends React.Component {
           ]
         },
 
-        bindings: {
+        popupBindings: {
+          symbolInfo: {
+            factory: ({ symInfo, fromSymInfo }, grokCtx, sessionThing) => {
+              return {
+                popupProps: {},
+                contents: (
+                  <KBSymbolInfoPopup
+                    grokCtx={ grokCtx }
+                    symInfo={ symInfo }
+                    fromSymInfo={ fromSymInfo }
+                    sessionThing={ sessionThing }
+                    />
+                )
+              };
+            }
+          }
+        },
+
+        sheetBindings: {
           // ## Searchfox Search Related
           searchField: {
             factory: ({ initialValue }) => {
@@ -240,22 +263,27 @@ class GrokApp extends React.Component {
 
   render() {
     return (
-      <ReflexContainer className="grokApp" orientation="vertical">
-        <ReflexElement className="left-pane">
-          <SessionNotebookContainer
-            grokCtx={ this.state.grokCtx }
-            trackName="exploration"
-            />
-        </ReflexElement>
-        <ReflexSplitter />
-        <ReflexElement className="right-pane"
-          minSize="200" maxSize="1200">
-          <SessionNotebookContainer
-            grokCtx={ this.state.grokCtx }
-            trackName="analysis"
-            />
-        </ReflexElement>
-      </ReflexContainer>
+      <div>
+        <ReflexContainer className="grokApp" orientation="vertical">
+          <ReflexElement className="left-pane">
+            <SessionNotebookContainer
+              grokCtx={ this.state.grokCtx }
+              trackName="exploration"
+              />
+          </ReflexElement>
+          <ReflexSplitter />
+          <ReflexElement className="right-pane"
+            minSize="200" maxSize="1200">
+            <SessionNotebookContainer
+              grokCtx={ this.state.grokCtx }
+              trackName="analysis"
+              />
+          </ReflexElement>
+        </ReflexContainer>
+        <SessionPopupContainer
+          grokCtx={ this.state.grokCtx }
+          />
+      </div>
     );
   }
 }

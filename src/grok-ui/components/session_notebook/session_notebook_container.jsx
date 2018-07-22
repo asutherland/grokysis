@@ -28,13 +28,19 @@ export default class SessionNotebookContainer extends DirtyingComponent {
     this.sessionManager = this.props.grokCtx.sessionManager;
     this.track = this.sessionManager.tracks[this.props.trackName];
 
+    // inductive binding cache of widgets; every time render() is called, a new
+    // map is populated that carries over reused and new bindings, letting
+    // no-longer-relevant widgets be discarded.
     this.thingToWidget = new Map();
   }
 
   render() {
+    const lastThingToWidget = this.thingToWidget;
+    const nextThingToWidget = new Map();
     const wrappedThings = this.track.things.map((thing) => {
-      let widget = this.thingToWidget.get(thing);
+      let widget = lastThingToWidget.get(thing);
       if (widget) {
+        nextThingToWidget.set(thing, widget);
         return widget;
       }
 
@@ -46,10 +52,12 @@ export default class SessionNotebookContainer extends DirtyingComponent {
           />
       );
 
-      this.thingToWidget.set(thing, widget);
+      nextThingToWidget.set(thing, widget);
 
       return widget;
     });
+
+    this.thingToWidget = nextThingToWidget;
 
     return (
       <div className="notebookContainer">

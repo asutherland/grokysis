@@ -111,6 +111,15 @@ export default class SessionThing {
     return this.track.updatePersistedState(this, newState);
   }
 
+  /**
+   * Trigger display of a popup of `type` consuming `payload` describing what
+   * should be displayed, and targeting the given `context` node.
+   */
+  showPopup(type, payload, context) {
+    return this.track.manager.popupManager.showPopup(
+      this, type, payload, context);
+  }
+
   removeSelf() {
     this.track.removeThing(this);
   }

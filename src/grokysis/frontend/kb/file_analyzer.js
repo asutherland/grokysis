@@ -400,6 +400,8 @@ export default class FileAnalyzer {
       const frozenChildren = Array.from(codePre.children);
       const allSynLines = finfo.lineToSymbolBounds =
         new Array(frozenChildren.length);
+      const dataIndexToSymbolBounds = finfo.dataIndexToSymbolBounds =
+        new Array(anData.length);
 
       // AST-aware processing state that is used to detect transitions from the
       // previous boundsByLine value.
@@ -476,11 +478,13 @@ export default class FileAnalyzer {
               const bestRawSym = pickBestSymbolFromSearches(searches);
               if (bestRawSym) {
                 const synSym = this.kb.lookupRawSymbol(bestRawSym);
-                synLine.push({
+                const symBounds = {
                   bounds: [offset, offset + tcLen],
                   type: isDef ? 'def' : 'use',
                   symInfo: synSym
-                });
+                };
+                synLine.push(symBounds);
+                dataIndexToSymbolBounds[jumpIdx] = symBounds;
               }
             }
           }
@@ -551,6 +555,7 @@ export default class FileAnalyzer {
             curSym = this.kb.lookupRawSymbol(
               rawSym, false, stripPrettyTypePrefix(lastDefSearches[0].pretty));
             curSym.sourceFragment = curFragment;
+            curSym.sourceFileInfo = finfo;
 
             finfo.fileSymbolDefs.add(curSym);
           }
