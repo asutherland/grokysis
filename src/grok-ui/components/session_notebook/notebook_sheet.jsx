@@ -44,7 +44,7 @@ export default class NotebookSheet extends React.Component {
     const grokCtx = thing.grokCtx;
 
     const { labelWidget, contentPromise, contentFactory, permanent } =
-      thing.bindingFactory(thing.persisted, grokCtx, thing);
+      thing.binding.factory(thing.persisted, grokCtx, thing);
 
     // It's okay to set this synchronously *before we go async*.  This is not
     // okay after our first await below.

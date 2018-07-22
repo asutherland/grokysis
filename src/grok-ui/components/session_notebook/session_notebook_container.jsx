@@ -19,7 +19,7 @@ export default class SessionNotebookContainer extends DirtyingComponent {
     // the notebook is characterized by the track.  The function is only invoked
     // after the constructor completes, so it's okay to access our convenience
     // variable initialized below.
-    super(props, function () { return this.track });
+    super(props, function () { return this.track; });
 
     this.passProps = {
       grokCtx: this.props.grokCtx

@@ -12,11 +12,11 @@
  *   made by other sheets.
  */
 export default class SessionThing {
-  constructor(track, id, type, bindingDef, persisted) {
+  constructor(track, id, type, binding, persisted) {
     this.id = id;
     this.track = track;
     this.type = type;
-    this.bindingFactory = bindingDef;
+    this.binding = binding;
     this.persisted = persisted;
 
     this.grokCtx = this.track.manager.grokCtx;
@@ -61,8 +61,41 @@ export default class SessionThing {
     this.track.manager.stopHandlingSlotMessage(this, slotName);
   }
 
-  sendSlotMessage(slotName, payload, queue) {
-    return this.track.manager.sendSlotMessage(slotName, payload, queue);
+  /**
+   * Send a message to the SessionThing whose binding was declared with a
+   * `slotName` matching the provided `thingSlot` here, instantiating the
+   * binding if there was not a binding instantiated at this time.  Note that
+   * the messages themselves will be asynchronously enqueued until the widget
+   * itself is mounted to the DOM and invokes handleSlotMessage.
+   */
+  sendSlotMessage(thingSlot, slotName, payload) {
+    return this.track.manager.sendSlotMessage(
+      this, thingSlot, slotName, payload);
+  }
+
+  /**
+   * Register this SessionThing to process broadcast messages for the given
+   * namespace and message type.  The broadcast mechanism differs from the slot
+   * mechanism in that 1) there can be multiple recipients of a broadcast,
+   * 2) broadcasts will not cause a binding to be instantiated to receive the
+   * message, and 3) messages will accordingly not be enqueued.
+   */
+  handleBroadcastMessage(namespace, type, callback) {
+    return this.track.manager.handleBroadcastMessage(
+      this, namespace, type, callback);
+  }
+
+  stopHandlingBroadcastMessage(namespace, type) {
+    return this.track.manager.stopHandlingBroadcastMessage(
+      this, namespace, type);
+  }
+
+  /**
+   * Synchronously send a broadcast message to all registered handlers at this
+   * instant.
+   */
+  broadcastMessage(namespace, type, payload) {
+    return this.track.manager.broadcastMessage(this, namespace, type, payload);
   }
 
   /**

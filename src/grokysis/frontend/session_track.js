@@ -57,15 +57,18 @@ export default class SessionTrack extends EE {
 
     const orderingChange = targetIdx < this.things.length;
 
-    const bindingFactory = this.manager.bindings[type];
-    if (typeof(bindingFactory) !== 'function') {
-      console.warn("bindingFactory not a function:", bindingFactory, "for type",
-                   type);
+    const binding = this.manager.bindings[type];
+    if (typeof(binding) !== 'object') {
+      console.warn("binding not a dictionary for type:", type);
+      throw new Error("binding wasn't an object");
+    }
+    if (typeof(binding.factory) !== 'function') {
+      console.warn("bindingFactory not a function:", binding.factory,
+                   "for type", type);
       throw new Error("binding factory wasn't a function");
     }
 
-    const thing = new SessionThing(this, useId, type, bindingFactory,
-                                   persisted);
+    const thing = new SessionThing(this, useId, type, binding, persisted);
     this.things.splice(targetIdx, 0, thing);
     // Write-through to the database if this didn't come from the database.
     if (!restored) {
@@ -75,6 +78,8 @@ export default class SessionTrack extends EE {
     if (orderingChange) {
       this._updatePersistedThingsBecauseOfOrderingChange();
     }
+
+    this.manager.sessionThingAdded(thing);
 
     this.serial++;
     this.emit('dirty', this);

@@ -43,8 +43,11 @@ import SessionThing from './session_thing';
  *   should change as things grow and become more complex, but is a little
  *   more straightforward, if breakage-prone, for now.
  * @param o.bindings
- *   Keys are binding names, values are functions that take `(persisted,
- *   grokCtx, sessionThing)` for an argument and returns an object dictionary
+ *   Keys are binding names, values are object dictionaries.  They may
+ *   optionally include a `slotName` that automatically instantiates a binding
+ *   of that type in the other track if one doesn't already exist.  They
+ *   must include a `factory` which is a function that takes `(persisted,
+ *   grokCtx, sessionThing)` arguments and returns an object dictionary
  *   containing:
  *   - labelWidget:
  *     React payload to display as the sheet's label.  This is passed as-is to
@@ -79,6 +82,13 @@ export default class SessionManager extends EE {
     /** object dict keyed by binding name and with factory function values. */
     this.bindings = bindings;
 
+    this.slotNameToBindingType = new Map();
+    for (const [type, binding] of Object.entries(bindings)) {
+      if (binding.slotName) {
+        this.slotNameToBindingType.set(binding.slotName, type);
+      }
+    }
+
     this.grokCtx = grokCtx;
     this._persistToDB = persistToDB;
     this._deleteFromDB = deleteFromDB;
@@ -89,13 +99,32 @@ export default class SessionManager extends EE {
     }
 
     /**
-     * Map from slot name to { sessionThing, callback }.
+     * Map from full slot name to { sessionThing, callback }.  "Full slot name"
+     * is a hand-wavey intermediate step to cleaning this all up.  The key idea
+     * is that we will automatically instantiate a binding whose binding
+     * slotName gets a message sent to it, and then there's a second string that
+     * is the actual type of message being sent to the binding.  This path was
+     * taken after it got very boilerplate-y to send a message to a binding that
+     * might need to be spawned.
+     *
+     * Currently fullSlotName is the binding's slotName delimited from the
+     * second string by '___'.
      */
     this.slotMessageRoutings = new Map();
     /**
-     * Map from slot name to list of payloads.
+     * Map from full slot name to list of payloads.
      */
     this.queuedSlotMessages = new Map();
+    /**
+     * Map from "thing slot", the slotName on the bindings, to the SessionThing
+     * currently alive that occupies that slot.
+     */
+    this.thingSlotNamesToThing = new Map();
+
+    /**
+     * Maps `${namespace}___${type}` to [{ sessionThing, callback }...].
+     */
+    this.broadcastRoutings = new Map();
 
     /**
      * Next SessionThing id to use.  We start from this value if there was
@@ -155,17 +184,60 @@ export default class SessionManager extends EE {
     }
   }
 
+  sessionThingAdded(addedThing) {
+    if (addedThing.binding.slotName) {
+      if (this.thingSlotNamesToThing.has(addedThing.binding.slotName)) {
+        console.warn('added potentially duplicating slot',
+                     addedThing.binding.slotName, addedThing, '- clobbering.');
+      }
+      this.thingSlotNamesToThing.set(addedThing.binding.slotName, addedThing);
+    }
+  }
+
   sessionThingRemoved(removedThing) {
     // ## TODO: some kind of undo handling via history state pushing.
 
     // ## Remove from persistence so it never comes back again.
     this._deleteFromDB(removedThing.id);
 
-    // ## Remove message slots where this is the current thing.
+    // ## Remove from slot tracking so it can be re-created as needed.
+    if (removedThing.binding.slotName) {
+      const existingSlotThing = this.thingSlotNamesToThing.get(
+        removedThing.binding.slotName);
+      if (existingSlotThing !== removedThing) {
+        console.warn('Removing', removedThing, 'which is not the owner of the',
+                     removedThing.binding.slotName, 'slot;', existingSlotThing,
+                     'is.');
+      } else {
+        this.thingSlotNamesToThing.delete(removedThing.binding.slotName);
+      }
+    }
+
+    // ## Remove (full) message slots where this is the current thing.
+    // We also expect bindings to invoke stopHandlingSlotMessage, so there's
+    // redundant coverage here, likely with us "winning" since explicit removal
+    // eventually results in the react binding being removed.
     for (const [slotName, { sessionThing }] of
          this.slotMessageRoutings.entries()) {
       if (sessionThing === removedThing) {
         this.slotMessageRoutings.delete(slotName);
+      }
+    }
+
+    // ## Remove broadcast routings referencing the thing.
+    // Same rationale on redundant but idempotent removal as above.
+    for (const [fullName, handlers] of this.broadcastRoutings.entries()) {
+      for (let i = 0; i < handlers.length; i++) {
+        const handler = handlers[i];
+        if (handler.sessionThing === removedThing) {
+          handlers.splice(i, 1);
+          if (handlers.length === 0) {
+            this.broadcastRoutings.delete(fullName);
+          }
+          // break out of iterating over handlers, but continue looping over the
+          // broadcast routings.
+          break;
+        }
       }
     }
   }
@@ -177,31 +249,34 @@ export default class SessionManager extends EE {
       trackName: track.name,
       type: thing.type,
       persisted
-    }
+    };
 
     return this._persistToDB(diskRep);
   }
 
   handleSlotMessage(sessionThing, slotName, callback) {
-    const existing = this.slotMessageRoutings.get(slotName);
+    const fullSlotName = sessionThing.binding.slotName + '___' + slotName;
+    const existing = this.slotMessageRoutings.get(fullSlotName);
     if (existing) {
       if (existing.sessionThing === sessionThing) {
-        return;
+        // This likely constitutes a logic error due to copying and pasting,
+        // throw.
+        throw new Error('redundant slot message registration');
       } else {
         try {
           existing.callback(null);
         } catch (ex) {
           console.error('evicted slot message callback unhappy', sessionThing,
-                        slotName, ex);
+                        fullSlotName, ex);
         }
       }
     }
-    this.slotMessageRoutings.set(slotName, { sessionThing, callback });
+    this.slotMessageRoutings.set(fullSlotName, { sessionThing, callback });
 
     // ## Clear out the backlog soon but not synchronously.
-    let backlog = this.queuedSlotMessages.get(slotName);
+    let backlog = this.queuedSlotMessages.get(fullSlotName);
     if (backlog) {
-      this.queuedSlotMessages.delete(slotName);
+      this.queuedSlotMessages.delete(fullSlotName);
       Promise.resolve().then(() => {
         for (const payload of backlog) {
           callback(payload);
@@ -211,29 +286,101 @@ export default class SessionManager extends EE {
   }
 
   stopHandlingSlotMessage(sessionThing, slotName) {
-    const existing = this.slotMessageRoutings.get(slotName);
+    const fullSlotName = sessionThing.binding.slotName + '___' + slotName;
+    const existing = this.slotMessageRoutings.get(fullSlotName);
     if (existing && existing.sessionThing === sessionThing) {
-      this.slotMessageRoutings.delete(slotName);
+      this.slotMessageRoutings.delete(fullSlotName);
     }
   }
 
-  sendSlotMessage(slotName, payload, queue) {
-    if (!this.slotMessageRoutings.has(slotName)) {
-      if (queue) {
-        let backlog = this.queuedSlotMessages.get(slotName);
-        if (!backlog) {
-          backlog = [];
-          this.queuedSlotMessages.set(slotName, backlog);
-        }
-        backlog.push(payload);
-        return [false, null];
-      }
-
-      console.warn('unhandled slot message', slotName, payload);
-      return [false, null];
+  /**
+   * Used by `sendSlotMessage` to spawn the mapped binding for the given slot
+   * type (if one is registered).
+   */
+  _spawnTargetBinding(triggeringThing, thingSlot) {
+    const type = this.slotNameToBindingType.get(thingSlot);
+    if (!type) {
+      console.warn('slot message sent to slotName', thingSlot,
+                   'for which there is no binding!');
+      return;
     }
 
-    const { sessionThing, callback } = this.slotMessageRoutings.get(slotName);
-    return [true, callback(payload)];
+    triggeringThing.addThingInOtherTrack({
+      // TODO: this should probably find a visible insertion point...
+      position: 'end',
+      type,
+      persisted: {}
+    });
+  }
+
+  sendSlotMessage(sessionThing, thingSlot, slotName, payload) {
+    const fullSlotName = thingSlot + '___' + slotName;
+    if (!this.slotMessageRoutings.has(fullSlotName)) {
+      let backlog = this.queuedSlotMessages.get(fullSlotName);
+      if (!backlog) {
+        backlog = [];
+        this.queuedSlotMessages.set(fullSlotName, backlog);
+      }
+      backlog.push(payload);
+
+      // ## Instantiate a binding if one doesn't exist/isn't being created
+      const existingTarget = this.thingSlotNamesToThing.get(thingSlot);
+      if (!existingTarget) {
+        this._spawnTargetBinding(sessionThing, thingSlot);
+      }
+      return;
+    }
+
+    const { callback } = this.slotMessageRoutings.get(fullSlotName);
+    callback(payload);
+  }
+
+  handleBroadcastMessage(sessionThing, namespace, type, callback) {
+    const fullName = namespace + '___' + type;
+    let handlers = this.broadcastRoutings.get(fullName);
+    if (!handlers) {
+      handlers = [];
+      this.broadcastRoutings.set(fullName, handlers);
+    }
+    handlers.push({ sessionThing, callback });
+  }
+
+  stopHandlingBroadcastMessage(sessionThing, namespace, type) {
+    const fullName = namespace + '___' + type;
+    const handlers = this.broadcastRoutings.get(fullName);
+    if (!handlers) {
+      // (as per the below, this handler may already have been removed)
+      return;
+    }
+    const idx = handlers.find(handler => handler.sessionThing === sessionThing);
+    if (idx === -1) {
+      // For invariant purposes, we remove the handlers when the sessionThing is
+      // removed, so it's possible we already automatically culled this thing.
+      return;
+    }
+    handlers.splice(idx, 1);
+
+    if (handlers.length === 0) {
+      this.broadcastRoutings.delete(fullName);
+    }
+  }
+
+  broadcastMessage(sessionThing, namespace, type, payload) {
+    const fullName = namespace + '___' + type;
+    const handlers = this.broadcastRoutings.get(fullName);
+    if (!handlers) {
+      // It's okay for there to be no handlers.  The caller would be using slot
+      // messages if they wanted a binding to be brought into existence.
+      return;
+    }
+
+    for (const { callback } of handlers) {
+      try {
+        callback(payload);
+      } catch(ex) {
+        console.warn('exception thrown invoking broadcast handler', namespace,
+                     type, ':', ex);
+      }
+    }
   }
 }

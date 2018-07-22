@@ -19,11 +19,11 @@ export default class TriceDetailSheet extends React.Component {
 
   componentDidMount() {
     this.props.sessionThing.handleSlotMessage(
-      'triceLog:eventFocused', this.onEventSelected);
+      'showEvent', this.onEventSelected);
   }
 
   componentWillUnmount() {
-    this.props.sessionThing.stopHandlingSlotMessage('triceLog:eventFocused');
+    this.props.sessionThing.stopHandlingSlotMessage('showEvent');
   }
 
   onEventSelected(event) {

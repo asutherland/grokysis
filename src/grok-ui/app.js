@@ -72,141 +72,162 @@ class GrokApp extends React.Component {
 
         bindings: {
           // ## Searchfox Search Related
-          searchField: ({ initialValue }) => {
-            return {
-              labelWidget: 'Searchfox Search',
-              contentPromise: null,
-              contentFactory: (props/*, data*/) => {
-                return (
-                  <SearchFieldSheet {...props}
-                    initialValue={ initialValue }
-                    />
-                );
-              }
-            };
+          searchField: {
+            factory: ({ initialValue }) => {
+              return {
+                labelWidget: 'Searchfox Search',
+                contentPromise: null,
+                contentFactory: (props/*, data*/) => {
+                  return (
+                    <SearchFieldSheet {...props}
+                      initialValue={ initialValue }
+                      />
+                  );
+                }
+              };
+            },
           },
 
-          searchResult: ({ searchText }, grokCtx) => {
+          searchResult: {
+            factory: ({ searchText }, grokCtx) => {
             // Trigger a search, this returns a promise.
-            const pendingResults = grokCtx.performSearch(searchText);
+              const pendingResults = grokCtx.performSearch(searchText);
 
-            return {
-              labelWidget: <span>Search Results: <i>{searchText}</i></span>,
-              // This will make the sheet display a loading indication until the
-              // search completes.
-              contentPromise: pendingResults,
-              // Once the search completes, the contentFactory will be invoked
-              // with the notebook sheet props plus the resolved content
-              // promise.
-              contentFactory: (props, searchResults) => {
-                return (
-                  <SearchResultsSheet {...props}
-                    searchResults={ searchResults }
-                    />
-                );
-              }
-            };
+              return {
+                labelWidget: <span>Search Results: <i>{searchText}</i></span>,
+                // This will make the sheet display a loading indication until the
+                // search completes.
+                contentPromise: pendingResults,
+                // Once the search completes, the contentFactory will be invoked
+                // with the notebook sheet props plus the resolved content
+                // promise.
+                contentFactory: (props, searchResults) => {
+                  return (
+                    <SearchResultsSheet {...props}
+                      searchResults={ searchResults }
+                      />
+                  );
+                }
+              };
+            },
           },
 
           // ## grokysis analysis related
-          fileView: (persisted, grokCtx) => {
-            // we're no longer quite as evilly hardcoded!
-            const path = persisted.path ||
-              'dom/serviceworkers/ServiceWorkerRegistrar.cpp';
-            const pendingFile = grokCtx.kb.ensureFileAnalysis(path);
+          fileView: {
+            factory: (persisted, grokCtx) => {
+              // we're no longer quite as evilly hardcoded!
+              const path = persisted.path ||
+                'dom/serviceworkers/ServiceWorkerRegistrar.cpp';
+              const pendingFile = grokCtx.kb.ensureFileAnalysis(path);
 
-            return {
-              labelWidget: `File Info: ${path}`,
-              contentPromise: pendingFile,
-              contentFactory: (props, resultFile) => {
-                return (
-                  <KBFileViewSheet {...props}
-                    kbFile={ resultFile }
-                    />
-                );
-              }
-            };
+              return {
+                labelWidget: `File Info: ${path}`,
+                contentPromise: pendingFile,
+                contentFactory: (props, resultFile) => {
+                  return (
+                    <KBFileViewSheet {...props}
+                      kbFile={ resultFile }
+                      />
+                  );
+                }
+              };
+            },
           },
 
-          symbolView: (persisted, grokCtx) => {
-            const symInfo = grokCtx.kb.lookupRawSymbol(persisted.rawSymbol);
+          symbolView: {
+            factory: (persisted, grokCtx) => {
+              const symInfo = grokCtx.kb.lookupRawSymbol(persisted.rawSymbol);
 
-            return {
-              labelWidget: `Symbol: ${ symInfo.rawName }`,
-              contentPromise: null,
-              contentFactory: (props) => {
-                return (
-                  <KBSymbolViewSheet {...props}
-                    symInfo={ symInfo }
-                    />
-                );
-              }
-            };
+              return {
+                labelWidget: `Symbol: ${ symInfo.rawName }`,
+                contentPromise: null,
+                contentFactory: (props) => {
+                  return (
+                    <KBSymbolViewSheet {...props}
+                      symInfo={ symInfo }
+                      />
+                  );
+                }
+              };
+            },
           },
 
           // ## Diagramming from Searchfox Exploration
-          diagram: (/*persisted/*, grokCtx*/) => {
-            return {
-              labelWidget: 'Diagram',
-              awaitContent: null,
-              contentFactory: (/*props*/) => {
-                return <div>Not yet implemented.</div>;
-              }
-            };
+          diagram: {
+            factory: (/*persisted/*, grokCtx*/) => {
+              return {
+                labelWidget: 'Diagram',
+                awaitContent: null,
+                contentFactory: (/*props*/) => {
+                  return <div>Not yet implemented.</div>;
+                }
+              };
+            },
           },
 
           // ## Trice Log Visualization
-          triceLoader: () => {
-            return {
-              labelWidget: 'Load Trice Log',
-              contentPromise: null,
-              contentFactory: (props/*, data*/) => {
-                return (
-                  <TriceLoaderSheet {...props}
-                    />
-                );
-              }
-            };
+          triceLoader: {
+            factory: () => {
+              return {
+                labelWidget: 'Load Trice Log',
+                contentPromise: null,
+                contentFactory: (props/*, data*/) => {
+                  return (
+                    <TriceLoaderSheet {...props}
+                      />
+                  );
+                }
+              };
+            },
           },
 
-          triceTimeline: (persisted, grokCtx) => {
-            const pendingTriceLog = grokCtx.loadTriceLog(persisted);
+          triceTimeline: {
+            slotName: 'triceLog:vis',
+            factory: (persisted, grokCtx) => {
+              const pendingTriceLog = grokCtx.loadTriceLog(persisted);
 
-            return {
-              labelWidget: <span>Trice Log: <i>{ persisted.url }</i></span>,
-              contentPromise: pendingTriceLog,
-              contentFactory: (props, triceLog) => {
-                return (
-                  <TriceTimelineSheet {...props}
-                    triceLog={ triceLog }
-                    />
-                );
-              }
-            };
+              return {
+                labelWidget: <span>Trice Log: <i>{ persisted.url }</i></span>,
+                contentPromise: pendingTriceLog,
+                contentFactory: (props, triceLog) => {
+                  return (
+                    <TriceTimelineSheet {...props}
+                      triceLog={ triceLog }
+                      />
+                  );
+                }
+              };
+            },
           },
 
-          triceDetail: () => {
-            return {
-              labelWidget: 'Trice Event Detail',
-              contentPromise: null,
-              contentFactory: (props) => {
-                return (
-                  <TriceDetailSheet {...props} />
-                );
-              }
-            };
+          triceDetail: {
+            slotName: 'triceLog:detail',
+            factory: () => {
+              return {
+                labelWidget: 'Trice Event Detail',
+                contentPromise: null,
+                contentFactory: (props) => {
+                  return (
+                    <TriceDetailSheet {...props} />
+                  );
+                }
+              };
+            },
           },
 
-          triceFilter: () => {
-            return {
-              labelWidget: 'Trice Filter',
-              contentPromise: null,
-              contentFactory: (props) => {
-                return (
-                  <TriceFilterSheet {...props} />
-                );
-              }
-            };
+          triceFilter: {
+            slotName: 'triceLog:filters',
+            factory: () => {
+              return {
+                labelWidget: 'Trice Filter',
+                contentPromise: null,
+                contentFactory: (props) => {
+                  return (
+                    <TriceFilterSheet {...props} />
+                  );
+                }
+              };
+            }
           }
         }
       }

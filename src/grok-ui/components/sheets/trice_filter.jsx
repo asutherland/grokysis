@@ -26,14 +26,15 @@ export default class TriceFilterSheet extends React.PureComponent {
 
   componentDidMount() {
     this.props.sessionThing.handleSlotMessage(
-      'triceLog:filters:hello', this.onLogHello);
-    this.props.sessionThing.handleSlotMessage(
-      'triceLog:filters:seeked', this.onSeeked);
+      'show', this.onLogHello);
+    this.props.sessionThing.handleBroadcastMessage(
+      'triceLog:vis', 'seeked', this.onSeeked);
   }
 
   componentWillUnmount() {
-    this.props.sessionThing.stopHandlingSlotMessage('triceLog:eventFocused');
-    this.props.sessionThing.stopHandlingSlotMessage('triceLog:filters:seeked');
+    this.props.sessionThing.stopHandlingSlotMessage('show');
+    this.props.sessionThing.stopHandlingBroadcastMessage(
+      'triceLog:vis', 'seeked');
   }
 
   onLogHello(log) {
@@ -44,7 +45,7 @@ export default class TriceFilterSheet extends React.PureComponent {
   // enhancement would be to know which vis was clicked and find the closest
   // bin so we can snap to it.
   onClickVisX(x) {
-    this.props.sessionThing.sendSlotMessage('triceLog:vis:seek', { bin: x });
+    this.props.sessionThing.sendSlotMessage('triceLog:vis', 'seek', { bin: x });
   }
 
   onSeeked({ startBin, endBin }) {

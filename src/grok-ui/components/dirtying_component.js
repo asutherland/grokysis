@@ -53,7 +53,7 @@ export default class DirtyingComponent extends React.PureComponent {
     return this._repObjResolver();
   }
 
-  componentWillMount() {
+  componentDidMount() {
     this.repObj.on('dirty', this.onDirty, this);
     if (this._extraEvents) {
       for (const eventName of this._extraEvents) {
