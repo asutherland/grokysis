@@ -27,7 +27,7 @@ export default class KBFile extends DirtyingComponent {
           key={ symInfo.rawName }
           onClick={ () => { this.onSymbolClicked(symInfo); } }
           >
-          { symInfo.prettyName || symInfo.rawName }
+          { symInfo.prettiestName }
         </List.Item>
       );
     }

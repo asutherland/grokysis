@@ -53,7 +53,7 @@ export default class KBSymbol extends DirtyingComponent {
               key={ callSym.rawName }
               onClick={ () => { this.onSymbolClicked(callSym); } }
               >
-              { callSym.prettyName || callSym.rawName }
+              { callSym.prettiestName }
             </List.Item>
           );
         }
