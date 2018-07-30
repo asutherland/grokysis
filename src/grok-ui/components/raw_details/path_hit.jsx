@@ -24,8 +24,9 @@ export default class PathHit extends React.PureComponent {
 
     const panels = [
       {
-        // NB: the keys in here are irrelevant because there's just the one
-        // singleton panel.
+        // This key is necessary even though we're a singleton because the dev
+        // mode likes to warn on arrays, as it should.
+        key: '0',
         title: {
           content: (
             <span>
@@ -33,7 +34,6 @@ export default class PathHit extends React.PureComponent {
               { ` (${lineHits.length})`}
             </span>
           ),
-          key: 'h0',
         },
         content: {
           content: (
@@ -41,7 +41,6 @@ export default class PathHit extends React.PureComponent {
               { lineHits }
             </div>
           ),
-          key: 'c0',
         }
       }
     ];

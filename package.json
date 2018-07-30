@@ -15,7 +15,8 @@
     "semantic-ui-css": "^2.2.12",
     "semantic-ui-react": "^0.82.0",
     "toml": "^2.3.3",
-    "vis": "^4.20.0"
+    "vis": "^4.20.0",
+    "viz.js": "^2.0.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",

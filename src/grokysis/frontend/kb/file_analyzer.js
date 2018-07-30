@@ -553,7 +553,8 @@ export default class FileAnalyzer {
             const rawSym = pickBestSymbolFromSearches(lastDefSearches);
             // and our direct lastDefSearches[0] accordingly assumes the impl.
             curSym = this.kb.lookupRawSymbol(
-              rawSym, false, stripPrettyTypePrefix(lastDefSearches[0].pretty));
+              rawSym, false, stripPrettyTypePrefix(lastDefSearches[0].pretty),
+              { sourcePath: finfo.path });
             curSym.sourceFragment = curFragment;
             curSym.sourceFileInfo = finfo;
 

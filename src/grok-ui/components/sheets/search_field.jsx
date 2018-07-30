@@ -28,7 +28,7 @@ export default class SearchFieldSheet extends React.Component {
     // field widget.
     this.props.sessionThing.updatePersistedState({
       initialValue: searchText
-    })
+    });
   }
 
   render() {
@@ -39,7 +39,7 @@ export default class SearchFieldSheet extends React.Component {
           <input
              defaultValue={ this.props.initialValue }
              type="text"
-             ref={(input) => this.input = input} />
+             ref={ (input) => { this.input = input; } } />
         </label>&nbsp;
         <input type="submit" value="Search" />
       </form>

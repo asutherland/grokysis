@@ -2,6 +2,10 @@ import SymbolInfo from './kb/symbol_info.js';
 import FileInfo from './kb/file_info.js';
 import FileAnalyzer from './kb/file_analyzer.js';
 
+import ClassDiagram from './diagramming/class_diagram.js';
+
+import InternalDoodler from './diagramming/internal_doodler.js';
+
 /**
  * Hand-waving source of information that's not spoon-fed to us by searchfox or
  * lower level normalization layers.  This means a home for:
@@ -67,12 +71,11 @@ export default class KnowledgeBase {
    *
    * @param {String} [prettyName]
    */
-  lookupRawSymbol(rawName, doAnalyze, prettyName) {
+  lookupRawSymbol(rawName, doAnalyze, prettyName, opts) {
     let symInfo = this.symbolsByRawName.get(rawName);
     if (symInfo) {
       if (prettyName && !symInfo.prettyName) {
-        symInfo.prettyName = prettyName;
-        symInfo.markDirty();
+        symInfo.updatePrettyNameFrom(prettyName);
       }
       if (doAnalyze) {
         this.ensureSymbolAnalysis(symInfo);
@@ -80,7 +83,13 @@ export default class KnowledgeBase {
       return symInfo;
     }
 
-    symInfo = new SymbolInfo({ rawName, prettyName });
+    symInfo = new SymbolInfo({
+      rawName, prettyName,
+      // propagate hints for the source through.
+      somePath: opts && opts.somePath,
+      headerPath: opts && opts.headerPath,
+      sourcePath: opts && opts.sourcePath
+    });
     this.symbolsByRawName.set(rawName, symInfo);
 
     if (doAnalyze) {
@@ -159,7 +168,15 @@ export default class KnowledgeBase {
   }
 
   /**
-   * Dig up info on a symbol by
+   * Dig up info on a symbol by:
+   * - TODO Running a searchfox search on the symbol.
+   * - TODO Populate edge information from the results.  (We get in edges and
+   *   out edges this way, whereas source analysis only generates out edges,
+   *   although we do generate the reflexive use edge.)
+   * - TODO With the search results, ensure the file hosting the definition gets
+   *   analyzed so we have the source analysis.
+   * - TODO Also analyze the declaration, if appropriate/different, if only so
+   *   we can have the syntax-highlighted source for it.
    */
   async _analyzeSymbol(symInfo) {
 
@@ -167,5 +184,27 @@ export default class KnowledgeBase {
 
 
 
+  }
+
+  /**
+   * Create a starting diagram based on a symbol and a diagram type.
+   */
+  diagramSymbol(symInfo, diagramType) {
+    const diagram = new ClassDiagram();
+
+    switch (diagramType) {
+      default:
+      case 'empty': {
+        break;
+      }
+
+      case 'method': {
+        const doodler = new InternalDoodler();
+        doodler.doodleMethodInternalEdges(symInfo, diagram);
+        break;
+      }
+    }
+
+    return diagram;
   }
 }

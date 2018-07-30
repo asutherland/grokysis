@@ -4,6 +4,7 @@ import { Header, List, Tab } from 'semantic-ui-react';
 
 import DirtyingComponent from '../dirtying_component.js';
 
+import ClassDiagram from '../diagrams/class_diagram.jsx';
 import SymSource from '../kb_details/sym_source.jsx';
 
 /**
@@ -40,9 +41,12 @@ export default class KBSymbolInfo extends DirtyingComponent {
     panes.push({
       menuItem: 'Overview',
       render: () => {
+        const diagram = this.props.grokCtx.kb.diagramSymbol(symInfo, 'method');
+
         return (
           <Tab.Pane>
             Type: { symInfo.type }
+            <ClassDiagram diagram={ diagram } />
           </Tab.Pane>
         );
       }

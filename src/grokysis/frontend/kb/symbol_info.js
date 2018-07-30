@@ -1,6 +1,16 @@
 import EE from 'eventemitter3';
 
 /**
+ * Naive regexps to help with processing pretty names into component parts.
+ * The gameplan would be for Searchfox to spoon-feed this information about
+ * symbols to us.
+ */
+const RE_CPP_SYMBOL = /^([\w() ]+::)*(\w+)::([\w~]+)$/;
+const RE_STARTSWITH_LOWER = /^[a-z]/;
+const RE_STD_CLASS_PREFIX = /^ns|moz/;
+const RE_JS_SYMBOL = /^(\w+#)*(\w+)#(\w+)$/;
+
+/**
  * Live-updating KnowledgeBase info about a symbol.
  *
  * Our immediate motivation and use for this is to understand the in-edges and
@@ -18,13 +28,50 @@ import EE from 'eventemitter3';
  * - defLocation { path, lineInfo }
  */
 export default class SymbolInfo extends EE {
-  constructor({ rawName, defLocation, prettyName }) {
+  constructor({ rawName, defLocation, prettyName,
+                somePath, headerPath, sourcePath }) {
     super();
 
     this.serial = 0;
 
+    /**
+     * The raw searchfox symbol name for this symbol.  For C++ this is the
+     * mangled symbol name.  For things like JS or IDL this may be a synthetic
+     * searchfox symbol.
+     */
     this.rawName = rawName;
-    this.prettyName = prettyName || null;
+
+    /**
+     * Fully qualified human-readable name for the symbol like a debugger would
+     * tell you or want.
+     */
+    this.fullName = null;
+
+    /**
+     * For methods/fields this is the class-qualified name like "Class::method",
+     * for classes it's just "Class", for namespaces it's the full namespace.
+     */
+    this.simpleName = null;
+    /**
+     * The namespace this symbol belongs to.  For an actual namespace "foo::bar"
+     * this will be "foo".  For a method, this will be the namespace the class
+     * belongs to.  When nested classes happen, everything but the most
+     * immediate class is treated as part of the namespace.
+     */
+    this.namespace = null;
+    /**
+     * For things that can be contained by a class/interface/struct, this is the
+     * name of that container.  For a class that's contained by a namespace
+     * rather than another class, this will be the empty string.
+     */
+    this.className = null;
+    /**
+     * For methods/fields, this is the name of the method/field without the
+     * class.  For classes, this is their class name.
+     */
+    this.localName = null;
+
+    this.fullyQualifiedParts = [];
 
     this.defLocation = defLocation || null;
 
@@ -69,6 +116,12 @@ export default class SymbolInfo extends EE {
      * essential to be able to resolve data-i references.
      */
     this.sourceFileInfo = null;
+
+    if (prettyName) {
+      this.updatePrettyNameFrom(
+        prettyName, sourcePath || headerPath || somePath);
+    }
+    this.updateBoring();
   }
 
   markDirty() {
@@ -77,7 +130,94 @@ export default class SymbolInfo extends EE {
   }
 
   get prettiestName() {
-    return this.prettyName || this.rawName;
+    return this.fullName || this.rawName;
+  }
+
+  isClass() {
+    return this.typeLetter === 'c';
+  }
+
+  isMethod() {
+    return this.typeLetter === 'm';
+  }
+
+  isSameClassAs(otherSym) {
+    return otherSym.className === this.className;
+  }
+
+  updatePrettyNameFrom(prettyName, path) {
+    // Somewhat bogus mechanism for determining whether we're dealing with JS
+    // or not borrowed from original diagramming experiments.
+    let isJS;
+    if (path) {
+      isJS = /\.js$/.test(path);
+    } else if (prettyName.indexOf('#') !== -1
+               || prettyName.indexOf(':') === -1) {
+      isJS = true;
+    } else {
+      isJS = false;
+    }
+
+    // Break up the symbol into namespace, className, and methodName components
+    // on a best-effort basis.  Consider having the server give us more
+    // information if this gets any uglier.
+    let namespace, className, methodName, match, nsParts;
+    if (isJS) {
+      match = RE_JS_SYMBOL.exec(prettyName);
+      if (match) {
+        namespace = match[1] || null;
+        nsParts = namespace.split('.');
+        className = match[2];
+        methodName = match[3];
+      } else {
+        namespace = null;
+        nsParts = [];
+        className = prettyName;
+        methodName = null;
+      }
+    } else {
+      match = RE_CPP_SYMBOL.exec(prettyName);
+      if (match) {
+        namespace = match[1] || null;
+        // If the class name starts with lowercase then we may be getting faked
+        // out by a namespace unless it's an expected prefix.
+        if (RE_STARTSWITH_LOWER.test(match[2]) &&
+            !RE_STD_CLASS_PREFIX.test(match[2])) {
+          if (namespace) {
+            namespace += match[2] + "::";
+          } else {
+            namespace = match[2];
+          }
+          className = match[3];
+          methodName = null;
+        } else {
+          className = match[2];
+          methodName = match[3];
+        }
+        nsParts = nsParts ? namespace.split('::') : [];
+      } else {
+        nsParts = [];
+        namespace = null;
+        className = prettyName;
+        methodName = null;
+      }
+    }
+
+    this.fullName = prettyName;
+    this.namespace = namespace;
+    this.simpleName = className + methodName;
+    this.className = className;
+    this.localName = methodName;
+
+    if (className) {
+      nsParts.push(className);
+    }
+    if (methodName) {
+      nsParts.push(methodName);
+    }
+    this.fullyQualifiedParts = nsParts;
+
+    this.markDirty();
   }
 
   /**

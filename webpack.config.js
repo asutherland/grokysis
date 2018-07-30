@@ -23,6 +23,11 @@ module.exports = {
   ],
   module: {
     rules: [
+      // don't attempt to process the viz.js compiled file...
+      {
+        test: /\.render\.js$/,
+        use: ['file-loader']
+      },
       {
         test: /\.js[x]?$/,
         exclude: /node_modules/,

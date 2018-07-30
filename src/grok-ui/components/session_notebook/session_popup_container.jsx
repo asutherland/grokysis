@@ -54,6 +54,7 @@ export default class SessionPopupContainer extends DirtyingComponent {
       <Popup {...widgetInfo.popupProps}
         open={ isOpen }
         context={ context }
+        position="bottom left"
         onClose={ () => { popupManager.popupClosed(popupInfo); } }
         >
         <Popup.Content>
