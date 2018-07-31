@@ -45,7 +45,6 @@ export default class KBSymbolInfo extends DirtyingComponent {
 
         return (
           <Tab.Pane>
-            Type: { symInfo.type }
             <ClassDiagram diagram={ diagram } />
           </Tab.Pane>
         );
@@ -86,7 +85,9 @@ export default class KBSymbolInfo extends DirtyingComponent {
 
     return (
       <React.Fragment>
-        <Header as='h3'>{ symInfo.prettiestName }</Header>
+        <Header as='h3'
+          onClick={ () => { this.onSymbolClicked(symInfo); } }
+          >{ symInfo.prettiestName }</Header>
         <Tab
           menu={{ attached: true }}
           menuPosition='left'

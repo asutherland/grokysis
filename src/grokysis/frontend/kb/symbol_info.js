@@ -145,6 +145,10 @@ export default class SymbolInfo extends EE {
     return otherSym.className === this.className;
   }
 
+  isSameSourceFileAs(otherSym) {
+    return otherSym.sourceFileInfo === this.sourceFileInfo;
+  }
+
   updatePrettyNameFrom(prettyName, path) {
     // Somewhat bogus mechanism for determining whether we're dealing with JS
     // or not borrowed from original diagramming experiments.

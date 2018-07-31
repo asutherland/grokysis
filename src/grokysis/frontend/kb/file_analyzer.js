@@ -117,7 +117,11 @@ export default class FileAnalyzer {
         return id;
       } else {
         console.warn('unknown declNode idNode type', idNode.type, declNode);
-        throw new Error('fatal processing issue: unknown id node type');
+        // this happens at least for the cycle collection macros in
+        // nsGlobalWindowInner where we end up with a bunch of nested
+        // function_declarators whose second children are ERROR instances.
+        return null;
+        //throw new Error('fatal processing issue: unknown id node type');
       }
     };
 
@@ -198,6 +202,9 @@ export default class FileAnalyzer {
             return;
           }
           const id = extractIdFromFunctionDeclarator(declNode);
+          if (!id) {
+            return;
+          }
           const compoundNode = pickChild(node, 'compound_statement');
           // mark the definition first, as it will be a superset of the body...
           markMethodBounds(namespace, id, node, 'def');

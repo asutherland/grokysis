@@ -10,11 +10,14 @@ export default class KBFile extends DirtyingComponent {
     super(props, 'kbFile');
   }
 
-  onSymbolClicked(symInfo) {
-    this.props.sessionThing.addThingInOtherTrack({
-      type: 'symbolView',
-      persisted: { rawSymbol: symInfo.rawName },
-    });
+  onSymbolClicked(evt, symInfo) {
+    this.props.sessionThing.showPopup(
+      'symbolInfo',
+      // we express ourselves as the from so that this can be used to create
+      // a graph edge.
+      { symInfo, fromSymInfo: null },
+      // the popup wants to be relative to the clicked symbol.
+      evt.target);
   }
 
   render() {
@@ -25,7 +28,7 @@ export default class KBFile extends DirtyingComponent {
       symItems.push(
         <List.Item
           key={ symInfo.rawName }
-          onClick={ () => { this.onSymbolClicked(symInfo); } }
+          onClick={ (evt) => { this.onSymbolClicked(evt, symInfo); } }
           >
           { symInfo.prettiestName }
         </List.Item>
