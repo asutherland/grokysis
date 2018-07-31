@@ -98,8 +98,11 @@ export default class SessionManager extends EE {
     this._deleteFromDB = deleteFromDB;
 
     this.tracks = {};
+    this.tracksByIndex = [];
     for (const trackName of this.trackNames) {
-      this.tracks[trackName] = new SessionTrack(this, trackName);
+      const track = new SessionTrack(this, trackName);
+      this.tracks[trackName] = track;
+      this.tracksByIndex.push(track);
     }
 
     /**

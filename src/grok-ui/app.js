@@ -43,7 +43,7 @@ class GrokApp extends React.Component {
   constructor(appProps) {
     super(appProps);
 
-    const outerGrokCtx = new GrokAnalysisFrontend({
+    const outerGrokCtx = window.grokCtx = new GrokAnalysisFrontend({
       // For now, there's just a single session.
       session: {
         name: 'main',

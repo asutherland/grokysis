@@ -99,8 +99,11 @@ export default class FileAnalyzer {
     const extractIdFromFunctionDeclarator = (declNode) => {
       const idNode = declNode.children[0];
       const idType = idNode.type;
-      if (idType === 'identifier' ||
-          idType === 'field_identifier') {
+      // destructors wrap 2 children with type "~" and identifier.
+      if (idType === 'destructor_name') {
+        return idNode.children[0].type + idNode.children[1].text;
+      } else if (idType === 'identifier' ||
+                 idType === 'field_identifier') {
         return idNode.text;
       } else if (idType === 'scoped_identifier') {
         let id = '';
@@ -180,9 +183,19 @@ export default class FileAnalyzer {
               declNode = pickChild(errNode, 'function_declarator');
             }
           }
+          // This could also be a pointer_declarator wrapping the underlying
+          // function_declarator
+          if (!declNode) {
+            const ptrNode = pickChild(node, 'pointer_declarator');
+            if (ptrNode) {
+              declNode = pickChild(ptrNode, 'function_declarator');
+            }
+          }
           if (!declNode) {
             console.warn('weirdness for declNode', declNode, 'inside parent',
                          node);
+            // XXX if we end up here, we're going to fail.  just return.
+            return;
           }
           const id = extractIdFromFunctionDeclarator(declNode);
           const compoundNode = pickChild(node, 'compound_statement');
@@ -569,6 +582,7 @@ export default class FileAnalyzer {
                   const linkedSym =
                     this.kb.lookupRawSymbol(rawSym, false, pretty);
                   curSym.callsOutTo.add(linkedSym);
+                  linkedSym.receivesCallsFrom.add(curSym);
                 }
               }
             }

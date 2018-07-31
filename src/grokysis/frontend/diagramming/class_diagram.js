@@ -2,6 +2,14 @@ import EE from 'eventemitter3';
 
 const INDENT = '  ';
 
+// https://graphics.stanford.edu/~seander/bithacks.html via
+// https://stackoverflow.com/questions/43122082/efficiently-count-the-number-of-bits-in-an-integer-in-javascript
+function bitCount (n) {
+  n = n - ((n >> 1) & 0x55555555);
+  n = (n & 0x33333333) + ((n >> 2) & 0x33333333);
+  return ((n + (n >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+}
+
 /**
  * Helper to cluster dot snippets inside subgraphs.
  */
@@ -12,6 +20,7 @@ class HierNode {
     this.parent = parent;
 
     this.sym = null;
+    this.altSyms = null;
     /**
      * One of:
      * - collapse: Collapse this node into its child.
@@ -57,9 +66,16 @@ class HierNode {
     if (!sym) {
       return;
     }
+    // It can easily happen that multiple underlying symbols maps to the same
+    // pretty/de-mangled name.  Just stash the alternate syms for now.
     if (this.sym) {
+      if (!this.altSyms) {
+        this.altSyms = [sym];
+      } else {
+        this.altSyms.push(sym);
+      }
       console.warn('trying to clobber existing', this.sym, 'with', sym);
-      throw new Error('attempting to clobber sym!');
+      return;
     }
     this.sym = sym;
   }
@@ -323,7 +339,6 @@ export default class ClassDiagram extends EE {
   constructor() {
     super();
 
-
     this.nodes = new Set();
     // Keys are source nodes, values are a Map whose keys are the target node
     // and whose value is metadata.
@@ -375,7 +390,6 @@ export default class ClassDiagram extends EE {
     reverseMap.set(from, meta);
   }
 
-
   /**
    * Symbol graph traversal helper.  Deals with:
    * - Ensuring each edge is considered at most once.
@@ -388,38 +402,60 @@ export default class ClassDiagram extends EE {
    */
   visitWithHelpers(startNode, considerEdge) {
     // This is actually visited or will-visit.
-    const visitedNodes = new Set();
     const pendingNodes = [startNode];
+    const visitedNodes = new Set(pendingNodes);
+
+    // We use another ClassDiagram instance to store our weak wedges.
+    const weakDiag = this.weakDiag = new ClassDiagram();
 
     const handleEdge = (from, to, other) => {
-      const result = considerEdge(from, to);
+      // ignore erroneous edges.
+      if (from === null || to === null) {
+        return;
+      }
+      const [result, meta] = considerEdge(from, to);
 
       //console.log('considered edge', from, to, 'result', result);
+      let addEdge = true;
+      let traverseEdge = true;
 
       switch (result) {
         case this.BORING_EDGE: {
-          // Nothing to do here, we don't want the edge and we don't want to
-          // process the next node.
+          //console.log("   boring");
+          addEdge = false;
+          traverseEdge = false;
           return;
         }
         case this.WEAK_EDGE: {
+          //console.log("   weak");
+          weakDiag.ensureEdge(from, to, meta);
+          addEdge = false;
           break;
         }
         case this.STRONG_EDGE: {
+          //console.log("   strong");
+          // This means we potentially want to uplift portions of the
           break;
         }
         case this.OK_EDGE: {
+          //console.log("   ok");
+          traverseEdge = false;
           break;
         }
         default:
           throw new Error();
       }
 
-      this.ensureEdge(from, to);
+      if (addEdge) {
+        this.ensureEdge(from, to, meta);
+      }
 
-      // if we're here, we do want to visit the node.
-      if (!visitedNodes.has(other)) {
+      if (traverseEdge && !visitedNodes.has(other)) {
         pendingNodes.push(other);
+        visitedNodes.add(other);
+      } else if (!traverseEdge) {
+        // an ok edge should suppress traversal into the node.
+        visitedNodes.add(other);
       }
     };
 
@@ -431,6 +467,94 @@ export default class ClassDiagram extends EE {
       }
       for (const callerNode of curNode.receivesCallsFrom) {
         handleEdge(callerNode, curNode, callerNode);
+      }
+    }
+  }
+
+  /**
+   * May be called multiple times after a visitWithHelpers call to run flood
+   * propagations to find all the paths between externally maintained "strong"
+   * nodes.  (The external maintenance can likely be folded in.)
+   *
+   * This algorithm's flood traversal is directional.  We run via forward edges
+   * once and via reverse edges once.  We don't do what visitWithHelpers does
+   * where it processes each node in both directions every time.
+   */
+  floodWeakDiagForPaths(startNode, bitVal, terminusNodes) {
+    const weakDiag = this.weakDiag;
+
+    // ## Forward pass.
+    let visitedNodes = new Set(terminusNodes); // should include startNode
+    let pendingNodes = [startNode];
+    while (pendingNodes.length) {
+      const curNode = pendingNodes.pop();
+
+      const outMap = weakDiag.forwardEdges.get(curNode);
+      if (outMap) {
+        for (const [callsNode, meta] of outMap.entries()) {
+          outMap.set(callsNode, meta | bitVal);
+          // we also want to grab the mirror represenstation of this...
+          const mirrorMap = weakDiag.reverseEdges.get(callsNode);
+          const mirrorMeta = mirrorMap.get(curNode);
+          mirrorMap.set(curNode, mirrorMeta | bitVal);
+
+          if (!visitedNodes.has(callsNode)) {
+            pendingNodes.push(callsNode);
+            visitedNodes.add(callsNode);
+          }
+        }
+      }
+    }
+
+    // ## Reverse pass
+    visitedNodes = new Set(terminusNodes); // should include startNode
+    pendingNodes = [startNode];
+    while (pendingNodes.length) {
+      const curNode = pendingNodes.pop();
+
+      const inMap = weakDiag.reverseEdges.get(curNode);
+      if (inMap) {
+        for (const [callerNode, meta] of inMap.entries()) {
+          inMap.set(callerNode, meta | bitVal);
+          // we also want to grab the mirror represenstation of this...
+          const mirrorMap = weakDiag.forwardEdges.get(callerNode);
+          const mirrorMeta = mirrorMap.get(curNode);
+          mirrorMap.set(curNode, mirrorMeta | bitVal);
+
+          if (!visitedNodes.has(callerNode)) {
+            pendingNodes.push(callerNode);
+            visitedNodes.add(callerNode);
+          }
+        }
+      }
+    }
+  }
+
+  mergeTraversedWeakDiagIn() {
+    const weakDiag = this.weakDiag;
+    for (const [from, toMap] of weakDiag.forwardEdges.entries()) {
+      for (const [to, meta] of toMap.entries()) {
+        // NB: we could avoid the bit-counting by just noticing that we're
+        // or-ing in a value above that's different from the existing value.  We
+        // don't actually care about the tally proper or which bits, yet...
+        // (There could be a neat color thing that could be done with a VERY
+        // small number of colors.)
+        if (bitCount(meta) >= 2) {
+          this.ensureEdge(from, to, meta);
+        }
+      }
+    }
+
+    for (const [to, fromMap] of weakDiag.reverseEdges.entries()) {
+      for (const [from, meta] of fromMap.entries()) {
+        // NB: we could avoid the bit-counting by just noticing that we're
+        // or-ing in a value above that's different from the existing value.  We
+        // don't actually care about the tally proper or which bits, yet...
+        // (There could be a neat color thing that could be done with a VERY
+        // small number of colors.)
+        if (bitCount(meta) >= 2) {
+          this.ensureEdge(from, to, meta);
+        }
       }
     }
   }

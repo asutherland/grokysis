@@ -9,6 +9,26 @@ import './path_hit.css';
  * nesting the LineHit instances beneath it.
  */
 export default class PathCrumbed extends React.PureComponent {
+  analyzeFile(evt, path) {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    console.log('clicked on file', path);
+
+    // for now, only analyze C++ files.
+    if (!path.endsWith('.cpp') && !path.endsWith('.h')) {
+      return;
+    }
+
+    // XXX this hookup needs A Context shunt or something, but a hack will do
+    // for now.
+    const track = window.grokCtx.sessionManager.tracksByIndex[1];
+    track.addThing(null, null, {
+      type: 'fileView',
+      persisted: { path }
+    });
+  }
+
   render() {
     const { path } = this.props;
 
@@ -38,7 +58,9 @@ export default class PathCrumbed extends React.PureComponent {
     elems.push(
       <Breadcrumb.Section
         active
-        key={ `s${iLast}` }>
+        key={ `s${iLast}` }
+        onClick={ (evt) => { this.analyzeFile(evt, path); }}
+        >
         { lastPiece }
       </Breadcrumb.Section>
     );
