@@ -1,10 +1,33 @@
 const Parser = require('tree-sitter');
 
-const treeSitterCpp = require('tree-sitter-cpp');
+const l_cpp = require('tree-sitter-cpp');
+const l_c = require('tree-sitter-c');
+const l_js = require('tree-sitter-javascript');
+const l_rust = require('tree-sitter-rust');
 
-function parseSourceToJsonable(docStr) {
+const langsByExtension = {
+  'cpp': l_cpp,
+  'cc': l_cpp,
+  'c': l_c,
+  'js': l_js,
+  'rust': l_rust,
+};
+
+/**
+ * Use the appropriate tree-sitter language from our hardcoded set of languages
+ * and file extensions to parse the given source file and its relative path.
+ */
+function parseSourceToJsonable(docStr, relpath) {
+  const ext = relpath.split('.').slice(-1)[0];
+
+  if (!langsByExtension.hasOwnProperty(ext)) {
+    return null;
+  }
+
+  const lang = langsByExtension[ext];
+
   const parser = new Parser();
-  parser.setLanguage(treeSitterCpp);
+  parser.setLanguage(lang);
   const tree = parser.parse(docStr);
 
   function transform(node) {
