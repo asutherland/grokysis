@@ -302,10 +302,10 @@ class HierBuilder {
     const dot = `digraph G {
   newrank = true;
   rankdir = "LR";
-  fontname = "Sans-Serif";
+  fontname = "Arial";
   splines = spline;
 
-  node [shape=none, fontname="Helvetica", fontsize=10, colorscheme=pastel28];
+  node [shape=none, fontname="Arial", fontsize=10, colorscheme=pastel28];
   edge [arrowhead=open];
 
   ${dotBody}
