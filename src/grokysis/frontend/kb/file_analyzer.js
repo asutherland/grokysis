@@ -78,6 +78,56 @@ export default class FileAnalyzer {
       return null;
     };
 
+    /**
+     * Find the first child of node that's an identifier and that
+     * extractIdFromIdentifier can provide a string for.
+     *
+     * This is being created to deal with struct_specifier which is showing
+     * [struct scoped_type_identifier, field_declaration_list] with the scoped
+     * identifier is [namespace_identifier, ::, type_identifier].  It may make
+     * sense to merge with extractIdFromFunctionDeclarator somewhat, but it
+     * needs more investigation or proof that it's breaking.
+     */
+    const pickIdentifierChild = (node) => {
+      for (const kid of node.children) {
+        switch (kid.type) {
+          case 'identifier':
+          case 'type_identifier':
+          case 'scoped_type_identifier':
+            return kid;
+          default:
+            break;
+        }
+      }
+      return null;
+    };
+    // see pickIdentifierChild
+    const extractIdFromIdentifier = (idNode) => {
+      const idType = idNode.type;
+
+      if (idType === 'identifier' ||
+          idType === 'type_identifier') {
+        return idNode.text;
+      } else if (idType === 'scoped_type_identifier') {
+        let id = '';
+        for (const kid of idNode.children) {
+          if (kid.type === '::') {
+            id += kid.type;
+          } else { // namespace_identifier or identifier
+            id += kid.text;
+          }
+        }
+        return id;
+      } else {
+        console.warn('unknown idNode type', idNode.type, idNode);
+        // this happens at least for the cycle collection macros in
+        // nsGlobalWindowInner where we end up with a bunch of nested
+        // function_declarators whose second children are ERROR instances.
+        return null;
+        //throw new Error('fatal processing issue: unknown id node type');
+      }
+    };
+
     const markMethodBounds = (namespace, localId, boundingNode, type) => {
       let fullName = namespace;
       if (fullName) {
@@ -97,11 +147,21 @@ export default class FileAnalyzer {
      * The declarator can either be an 'identifier' or a 'scoped_identifier'.
      */
     const extractIdFromFunctionDeclarator = (declNode) => {
-      const idNode = declNode.children[0];
-      const idType = idNode.type;
+      let curIdx = 0;
+      let idNode = declNode.children[curIdx];
+      let idType = idNode.type;
+
+      // pop type_qualifiers off the front.
+      while (idType === 'type_qualifier') {
+        idNode = declNode.children[++curIdx];
+        idType = idNode.type;
+      }
+
       // destructors wrap 2 children with type "~" and identifier.
       if (idType === 'destructor_name') {
         return idNode.children[0].type + idNode.children[1].text;
+      } else if (idType === 'operator_name') {
+        return idNode.text;
       } else if (idType === 'identifier' ||
                  idType === 'field_identifier') {
         return idNode.text;
@@ -137,6 +197,8 @@ export default class FileAnalyzer {
     const walk = (node, namespace) => {
       // The child node to actually recurse into.
       let walkChildrenOf = null;
+      // Or if there's a specific child or slice...
+      let walkSlice = null;
       let nextNamespace = namespace;
 
       // Here's a switch statement where we call out the things we explicitly
@@ -147,6 +209,21 @@ export default class FileAnalyzer {
         case 'translation_unit':
           walkChildrenOf = node;
           break;
+
+        // ### Targeted recursion
+        case 'preproc_if': // [#if, preproc_arg, SUBTREE..., #endif]
+        case 'preproc_ifdef': {
+          // [type=#ifdef, identifier, SUBTREE..., type=#endif]
+          walkSlice = node.children.slice(2, -1);
+          break;
+        }
+
+        case 'template_declaration': {
+          // [template, template_parameter_list, SUBTREE]
+          // There will also be template things mixed in in the child.
+          walkSlice = node.children.slice(2);
+          break;
+        }
 
         // ### Recurse with push.
         case 'namespace_definition': {
@@ -162,10 +239,12 @@ export default class FileAnalyzer {
           break;
         }
 
+        case 'struct_specifier':
         case 'class_specifier': {
-          const idNode = pickChild(node, 'type_identifier');
+          const idNode = pickIdentifierChild(node);
           if (idNode) {
-            nextNamespace = appendToNamespace(nextNamespace, idNode.text);
+            nextNamespace = appendToNamespace(nextNamespace,
+                                              extractIdFromIdentifier(idNode));
           }
 
           walkChildrenOf = pickChild(node, 'field_declaration_list');
@@ -223,7 +302,14 @@ export default class FileAnalyzer {
         case ';':
         case '\\n':
         case 'comment':
+        case 'alias_declaration': // [using, type_identifier, =, type_descriptor, ;]
+          // ^ similar to linkage_specification for externs below, this is flat
+          // and searchfox has the info level we need.
+        case 'linkage_specification': // [extern, string_literal, declaration]
+          // ^ the externs are flat so we don't need to recurse into them.  The
+          // searchfox analysis is sufficient.
         case 'preproc_include': // contains: '#include' 'string_literal'
+        case 'preproc_def': // [#define, identifier, preproc_arg, |n]
         case 'preproc_function_def': // contains '#define', 'identifier',
           // 'preproc_params', okay and even more.  so much more.
         case 'preproc_call': // containts 'preproc_directive', 'preproc_arg'
@@ -260,6 +346,10 @@ export default class FileAnalyzer {
 
       if (walkChildrenOf) {
         for (const kid of walkChildrenOf.children) {
+          walk(kid, nextNamespace);
+        }
+      } else if (walkSlice) {
+        for (const kid of walkSlice) {
           walk(kid, nextNamespace);
         }
       }
