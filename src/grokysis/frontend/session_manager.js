@@ -147,6 +147,18 @@ export default class SessionManager extends EE {
   }
 
   /**
+   * The session meta covers notebook sheet UI like whether something is
+   * collapsed or not.  Actually, right now it's exactly that, but there will
+   * inevitably be a need to store more, so it gets to be an object instead of
+   * a single hard-coded field.
+   */
+  makeDefaultSessionMeta() {
+    return {
+      collapsed: false
+    };
+  }
+
+  /**
    * Return the track that's paired with the provided track object.
    */
   getTrackCounterpart(track) {
@@ -168,6 +180,7 @@ export default class SessionManager extends EE {
         const track = this.tracks[trackName];
 
         for (const { type, persisted } of toAdd) {
+          // We are leaving it up to the track to call makeDefaultSessionMeta.
           track.addThing(null, this.allocId(),
                          { position: 'end', type, persisted });
         }
@@ -179,7 +192,7 @@ export default class SessionManager extends EE {
     // Sort by (numeric) index.  The tracks get interleaved this way, but we do
     // not care as things happen
     sessionThings.sort((a, b) => a.index - b.index);
-    for (const { id, trackName, type, persisted } of sessionThings) {
+    for (const { id, trackName, type, persisted, sessionMeta } of sessionThings) {
       const track = this.tracks[trackName];
       if (!track) {
         console.warn('track no longer exists?', trackName, 'dropping!');
@@ -187,7 +200,7 @@ export default class SessionManager extends EE {
       }
       this._nextId = Math.max(this._nextId, id + 1);
       track.addThing(null, id,
-        { position: 'end', type, persisted, restored: true });
+        { position: 'end', type, persisted, sessionMeta, restored: true });
     }
   }
 
@@ -249,12 +262,15 @@ export default class SessionManager extends EE {
     }
   }
 
-  updatePersistedState(track, thing, persisted) {
+  updatePersistedState(track, thing, persisted, sessionMeta) {
     const diskRep = {
       id: thing.id,
       index: track.things.indexOf(thing),
       trackName: track.name,
       type: thing.type,
+      // This holds things controlled by the notebook sheet, like
+      // collapsed-ness.
+      sessionMeta,
       persisted
     };
 

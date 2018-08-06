@@ -12,12 +12,13 @@
  *   made by other sheets.
  */
 export default class SessionThing {
-  constructor(track, id, type, binding, persisted) {
+  constructor(track, id, type, binding, persisted, sessionMeta) {
     this.id = id;
     this.track = track;
     this.type = type;
     this.binding = binding;
     this.persisted = persisted;
+    this.sessionMeta = sessionMeta;
 
     this.grokCtx = this.track.manager.grokCtx;
   }
@@ -108,7 +109,15 @@ export default class SessionThing {
    */
   updatePersistedState(newState) {
     this.persisted = newState;
-    return this.track.updatePersistedState(this, newState);
+    return this.track.updatePersistedState(this, newState, this.sessionMeta);
+  }
+
+  /**
+   * sessionMeta gets updated in-place, so just trigger a persisted update with
+   * the current persisted state so the sessionMeta goes along for the ride.
+   */
+  storeUpdatedSessionMeta() {
+    return this.updatePersistedState(this.persisted);
   }
 
   /**

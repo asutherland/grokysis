@@ -25,8 +25,10 @@ export default class NotebookSheet extends React.Component {
   constructor(props) {
     super(props);
 
+    const thing = props.sessionThing;
+
     this.state = {
-      collapsed: false,
+      collapsed: thing.sessionMeta ? thing.sessionMeta.collapsed : false,
       permanent: false,
       labelWidget: null,
       // For now, use a hard-coded loading string.
@@ -71,9 +73,20 @@ export default class NotebookSheet extends React.Component {
   }
 
   onToggleCollapsed() {
-    this.setState((prevState) => ({
-      collapsed: !prevState.collapsed
-    }));
+    this.setState((prevState) => {
+      // Determine the new state (async, because of setState semantics)
+      const newCollapsed = !prevState.collapsed;
+
+      // Update the persisted data for the SessionThing
+      const thing = this.props.sessionThing;
+      thing.sessionMeta.collapsed = newCollapsed;
+      thing.storeUpdatedSessionMeta();
+
+      // And return the revised state for react.
+      return {
+        collapsed: newCollapsed
+      };
+    });
   }
 
   render() {

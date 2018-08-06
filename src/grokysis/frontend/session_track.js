@@ -30,15 +30,19 @@ export default class SessionTrack extends EE {
     for (const thing of this.things) {
       // We can skip the thing we just wrote.
       if (thing !== newThingToIgnore) {
-        this.updatePersistedState(thing, thing.persisted);
+        this.updatePersistedState(thing, thing.persisted, thing.sessionMeta);
       }
     }
   }
 
-  addThing(relThing, useId, { position, type, persisted, restored }) {
+  addThing(relThing, useId,
+           { position, type, persisted, sessionMeta, restored }) {
     if (!useId) {
       // (an id of 0 is never used, so we won't ambiguously end up in here)
       useId = this.manager.allocId();
+    }
+    if (!sessionMeta) {
+      sessionMeta = this.manager.makeDefaultSessionMeta();
     }
 
     let targetIdx;
@@ -68,11 +72,12 @@ export default class SessionTrack extends EE {
       throw new Error("binding factory wasn't a function");
     }
 
-    const thing = new SessionThing(this, useId, type, binding, persisted);
+    const thing =
+      new SessionThing(this, useId, type, binding, persisted, sessionMeta);
     this.things.splice(targetIdx, 0, thing);
     // Write-through to the database if this didn't come from the database.
     if (!restored) {
-      this.updatePersistedState(thing, persisted);
+      this.updatePersistedState(thing, persisted, sessionMeta);
     }
 
     if (orderingChange) {
@@ -101,7 +106,7 @@ export default class SessionTrack extends EE {
     }
   }
 
-  updatePersistedState(thing, newState) {
-    this.manager.updatePersistedState(this, thing, newState);
+  updatePersistedState(thing, newState, sessionMeta) {
+    this.manager.updatePersistedState(this, thing, newState, sessionMeta);
   }
 }
