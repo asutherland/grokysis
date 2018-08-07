@@ -23,7 +23,7 @@ export default class ClassDiagram extends DirtyingComponent {
     if (this.diagramRef.current) {
       const diagram = this.props.diagram;
       const dot = diagram.lowerToGraphviz();
-      console.log('rendering DOT:\n' + dot);
+      //console.log('rendering DOT:\n' + dot);
       gViz.renderSVGElement(dot).then((elem) => {
         const container = this.diagramRef.current;
         if (container.firstChild) {
@@ -31,13 +31,10 @@ export default class ClassDiagram extends DirtyingComponent {
         }
         container.appendChild(elem);
       });
-    } else {
-      console.log('no ref?');
     }
   }
 
   componentDidUpdate() {
-    console.log('got componentDidUpdate');
     // we do the same thing on mount and update.
     this.componentDidMount();
   }

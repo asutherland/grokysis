@@ -20,6 +20,8 @@ export default class SessionThing {
     this.persisted = persisted;
     this.sessionMeta = sessionMeta;
 
+    this.serial = 0;
+
     this.grokCtx = this.track.manager.grokCtx;
   }
 
@@ -110,6 +112,12 @@ export default class SessionThing {
   updatePersistedState(newState) {
     this.persisted = newState;
     return this.track.updatePersistedState(this, newState, this.sessionMeta);
+  }
+
+  replaceWithPersistedState(newState) {
+    this.updatePersistedState(newState);
+    this.serial++;
+    this.track.sessionThingReplaced(this);
   }
 
   /**

@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { List, Tab } from 'semantic-ui-react';
+import { Button, List, Tab } from 'semantic-ui-react';
 
 import DirtyingComponent from '../dirtying_component.js';
 
@@ -16,6 +16,21 @@ export default class KBSymbol extends DirtyingComponent {
       type: 'symbolView',
       persisted: { rawSymbol: symInfo.rawName },
     });
+  }
+
+  onAddContextEdge(evt, from, to) {
+    evt.stopPropagation();
+    evt.preventDefault();
+
+    const thing = this.props.sessionThing;
+    thing.sendSlotMessage('diagram', 'addEdge', { from, to });
+  }
+
+  onNavigateInto(evt, to) {
+    evt.stopPropagation();
+    evt.preventDefault();
+
+    this.props.doNavigateIntoSym(to);
   }
 
   render() {
@@ -53,7 +68,13 @@ export default class KBSymbol extends DirtyingComponent {
               key={ callSym.rawName }
               onClick={ () => { this.onSymbolClicked(callSym); } }
               >
-              { callSym.prettiestName }
+              <Button.Group size='mini' compact={true} >
+                <Button icon='pencil'
+                  onClick={ (evt) => { this.onAddContextEdge(evt, symInfo, callSym); }}/>
+                <Button icon='eye'
+                  onClick={ (evt) => { this.onNavigateInto(evt, callSym); }}/>
+              </Button.Group>
+              &nbsp;{ callSym.prettiestName }
             </List.Item>
           );
         }
@@ -65,6 +86,35 @@ export default class KBSymbol extends DirtyingComponent {
         );
       }
     });
+    panes.push({
+      menuItem: 'Callers',
+      render: () => {
+        const symItems = [];
+        for (const callSym of symInfo.receivesCallsFrom) {
+          symItems.push(
+            <List.Item
+              key={ callSym.rawName }
+              onClick={ () => { this.onSymbolClicked(callSym); } }
+              >
+              <Button.Group size='mini' compact={ true } >
+                <Button icon='pencil'
+                  onClick={ (evt) => { this.onAddContextEdge(evt, callSym, symInfo); }}/>
+                <Button icon='eye'
+                  onClick={ (evt) => { this.onNavigateInto(evt, callSym); }}/>
+              </Button.Group>
+              &nbsp;{ callSym.prettiestName }
+            </List.Item>
+          );
+        }
+
+        return (
+          <Tab.Pane>
+            { symItems }
+          </Tab.Pane>
+        );
+      }
+    });
+
 
     return (
       <Tab

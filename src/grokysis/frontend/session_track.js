@@ -109,4 +109,18 @@ export default class SessionTrack extends EE {
   updatePersistedState(thing, newState, sessionMeta) {
     this.manager.updatePersistedState(this, thing, newState, sessionMeta);
   }
+
+  /**
+   * When a SessionThing replaces itself:
+   * - TODO: We really need/want some history state hookup here.  This implies
+   *   the caller having made sure to use the history API or other to snapshot
+   *   the state off before replacing it.
+   * - Emit dirty so the notebook container can rebuild itself and update the
+   *   SessionThing serials so that the NotebookSheet can end up knowing it
+   *   needs to re-run itself to restore from the new persisted state.
+   */
+  sessionThingReplaced() {
+    this.serial++;
+    this.emit('dirty');
+  }
 }

@@ -38,10 +38,10 @@ export default class NotebookSheet extends React.Component {
     this.onToggleCollapsed = this.onToggleCollapsed.bind(this);
     this.onClose = this.onClose.bind(this);
 
-    this._init();
+    this._init(true);
   }
 
-  async _init() {
+  async _init(firstTime) {
     const thing = this.props.sessionThing;
     const grokCtx = thing.grokCtx;
 
@@ -50,7 +50,11 @@ export default class NotebookSheet extends React.Component {
 
     // It's okay to set this synchronously *before we go async*.  This is not
     // okay after our first await below.
-    this.state.labelWidget = labelWidget;
+    if (firstTime) {
+      this.state.labelWidget = labelWidget;
+    } else {
+      this.setState({ labelWidget });
+    }
 
     let contentData;
     if (contentPromise != null) {
@@ -58,13 +62,22 @@ export default class NotebookSheet extends React.Component {
     }
 
     const renderedContent = contentFactory(this.props, contentData);
-    if (contentPromise != null) {
+    if (contentPromise != null || !firstTime) {
       // we went async
       this.setState({ permanent: permanent || false, renderedContent });
     } else {
       // we didn't go async, mutate state directly.
       this.state.permanent = permanent || false;
       this.state.renderedContent = renderedContent;
+    }
+  }
+
+  componentDidUpdate(prevProps) {
+    // If the thing uses replaceWithPersistedState, then we want to re-run the
+    // entire factory mechanism for this component.
+    if (prevProps.thingSerial !== this.props.thingSerial) {
+      console.log("saw thingSerial update from", prevProps.thingSerial, "to", this.props.thingSerial);
+      this._init(false);
     }
   }
 

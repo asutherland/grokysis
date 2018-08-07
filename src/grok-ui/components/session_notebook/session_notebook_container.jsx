@@ -28,19 +28,22 @@ export default class SessionNotebookContainer extends DirtyingComponent {
     this.sessionManager = this.props.grokCtx.sessionManager;
     this.track = this.sessionManager.tracks[this.props.trackName];
 
-    // inductive binding cache of widgets; every time render() is called, a new
+    // Inductive binding cache of widgets; every time render() is called, a new
     // map is populated that carries over reused and new bindings, letting
     // no-longer-relevant widgets be discarded.
-    this.thingToWidget = new Map();
+    //
+    // We now also track the serial so that we can generate a new tupled sheet
+    // thing.
+    this.thingToWidgetAndSerial = new Map();
   }
 
   render() {
-    const lastThingToWidget = this.thingToWidget;
-    const nextThingToWidget = new Map();
+    const lastThingToWidgetAndSerial = this.thingToWidgetAndSerial;
+    const nextThingToWidgetAndSerial = new Map();
     const wrappedThings = this.track.things.map((thing) => {
-      let widget = lastThingToWidget.get(thing);
-      if (widget) {
-        nextThingToWidget.set(thing, widget);
+      let [widget, serial] = lastThingToWidgetAndSerial.get(thing) || [null, 0];
+      if (widget && serial === thing.serial) {
+        nextThingToWidgetAndSerial.set(thing, [widget, serial]);
         return widget;
       }
 
@@ -49,15 +52,16 @@ export default class SessionNotebookContainer extends DirtyingComponent {
           { ...this.props.passProps }
           key={ thing.id }
           sessionThing={ thing }
+          thingSerial={ thing.serial }
           />
       );
 
-      nextThingToWidget.set(thing, widget);
+      nextThingToWidgetAndSerial.set(thing, [widget, thing.serial]);
 
       return widget;
     });
 
-    this.thingToWidget = nextThingToWidget;
+    this.thingToWidgetAndSerial = nextThingToWidgetAndSerial;
 
     return (
       <div className="notebookContainer">
