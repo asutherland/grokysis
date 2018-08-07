@@ -14,6 +14,8 @@ import SessionPopupContainer from
 
 import KBSymbolInfoPopup from './components/popups/kb_symbol_info.jsx';
 
+import DiagramSheet from './components/sheets/diagram.jsx';
+
 import KBFileViewSheet from './components/sheets/kb_file_view.jsx';
 import KBSymbolViewSheet from './components/sheets/kb_symbol_view.jsx';
 
@@ -177,12 +179,19 @@ class GrokApp extends React.Component {
 
           // ## Diagramming from Searchfox Exploration
           diagram: {
-            factory: (/*persisted/*, grokCtx*/) => {
+            slotName: 'diagram',
+            factory: (persisted, grokCtx) => {
+              const diagram = grokCtx.kb.restoreDiagram(
+                persisted.serialized || null);
               return {
                 labelWidget: 'Diagram',
                 awaitContent: null,
-                contentFactory: (/*props*/) => {
-                  return <div>Not yet implemented.</div>;
+                contentFactory: (props) => {
+                  return (
+                    <DiagramSheet {...props}
+                      diagram={ diagram }
+                      />
+                  );
                 }
               };
             },

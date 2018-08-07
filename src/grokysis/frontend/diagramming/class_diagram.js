@@ -339,6 +339,10 @@ export default class ClassDiagram extends EE {
   constructor() {
     super();
 
+    this.serial = 0;
+    this.batchDepth = 0;
+    this._serialWhenBatchBegan = 0;
+
     this.nodes = new Set();
     // Keys are source nodes, values are a Map whose keys are the target node
     // and whose value is metadata.
@@ -371,6 +375,37 @@ export default class ClassDiagram extends EE {
     this.OK_EDGE = 4;
   }
 
+  markDirty() {
+    this.serial++;
+    if (!this.batchDepth) {
+      this.emit('dirty');
+    }
+  }
+
+  beginBatch() {
+    if (!this.batchDepth) {
+      this._serialWhenBatchBegan = this.serial;
+    }
+    this.batchDepth++;
+  }
+
+  endBatch() {
+    this.batchDepth--;
+    if (!this.batchDepth) {
+      if (this.serial > this._serialWhenBatchBegan) {
+        this.emit('dirty');
+      }
+    }
+  }
+
+  loadFromSerialized() {
+    // TODO: implement serialization.
+    // current idea is just to serialize all the edges as raw symbols and then
+    // at load time look them all up, plus add ourselves as a listener for when
+    // file analyses complete so we can get more correct as things get loaded
+    // in.
+  }
+
   ensureEdge(from, to, meta) {
     this.nodes.add(from);
     this.nodes.add(to);
@@ -388,6 +423,7 @@ export default class ClassDiagram extends EE {
       this.reverseEdges.set(to, reverseMap);
     }
     reverseMap.set(from, meta);
+    this.markDirty();
   }
 
   /**
@@ -459,15 +495,20 @@ export default class ClassDiagram extends EE {
       }
     };
 
-    while (pendingNodes.length) {
-      const curNode = pendingNodes.pop();
+    try {
+      this.beginBatch();
+      while (pendingNodes.length) {
+        const curNode = pendingNodes.pop();
 
-      for (const callsNode of curNode.callsOutTo) {
-        handleEdge(curNode, callsNode, callsNode);
+        for (const callsNode of curNode.callsOutTo) {
+          handleEdge(curNode, callsNode, callsNode);
+        }
+        for (const callerNode of curNode.receivesCallsFrom) {
+          handleEdge(callerNode, curNode, callerNode);
+        }
       }
-      for (const callerNode of curNode.receivesCallsFrom) {
-        handleEdge(callerNode, curNode, callerNode);
-      }
+    } finally {
+      this.endBatch();
     }
   }
 
@@ -481,81 +522,94 @@ export default class ClassDiagram extends EE {
    * where it processes each node in both directions every time.
    */
   floodWeakDiagForPaths(startNode, bitVal, terminusNodes) {
-    const weakDiag = this.weakDiag;
+    try {
+      // eh, we don't really need this...
+      this.beginBatch();
 
-    // ## Forward pass.
-    let visitedNodes = new Set(terminusNodes); // should include startNode
-    let pendingNodes = [startNode];
-    while (pendingNodes.length) {
-      const curNode = pendingNodes.pop();
+      const weakDiag = this.weakDiag;
 
-      const outMap = weakDiag.forwardEdges.get(curNode);
-      if (outMap) {
-        for (const [callsNode, meta] of outMap.entries()) {
-          outMap.set(callsNode, meta | bitVal);
-          // we also want to grab the mirror represenstation of this...
-          const mirrorMap = weakDiag.reverseEdges.get(callsNode);
-          const mirrorMeta = mirrorMap.get(curNode);
-          mirrorMap.set(curNode, mirrorMeta | bitVal);
+      // ## Forward pass.
+      let visitedNodes = new Set(terminusNodes); // should include startNode
+      let pendingNodes = [startNode];
+      while (pendingNodes.length) {
+        const curNode = pendingNodes.pop();
 
-          if (!visitedNodes.has(callsNode)) {
-            pendingNodes.push(callsNode);
-            visitedNodes.add(callsNode);
+        const outMap = weakDiag.forwardEdges.get(curNode);
+        if (outMap) {
+          for (const [callsNode, meta] of outMap.entries()) {
+            outMap.set(callsNode, meta | bitVal);
+            // we also want to grab the mirror represenstation of this...
+            const mirrorMap = weakDiag.reverseEdges.get(callsNode);
+            const mirrorMeta = mirrorMap.get(curNode);
+            mirrorMap.set(curNode, mirrorMeta | bitVal);
+
+            if (!visitedNodes.has(callsNode)) {
+              pendingNodes.push(callsNode);
+              visitedNodes.add(callsNode);
+            }
           }
         }
       }
-    }
 
-    // ## Reverse pass
-    visitedNodes = new Set(terminusNodes); // should include startNode
-    pendingNodes = [startNode];
-    while (pendingNodes.length) {
-      const curNode = pendingNodes.pop();
+      // ## Reverse pass
+      visitedNodes = new Set(terminusNodes); // should include startNode
+      pendingNodes = [startNode];
+      while (pendingNodes.length) {
+        const curNode = pendingNodes.pop();
 
-      const inMap = weakDiag.reverseEdges.get(curNode);
-      if (inMap) {
-        for (const [callerNode, meta] of inMap.entries()) {
-          inMap.set(callerNode, meta | bitVal);
-          // we also want to grab the mirror represenstation of this...
-          const mirrorMap = weakDiag.forwardEdges.get(callerNode);
-          const mirrorMeta = mirrorMap.get(curNode);
-          mirrorMap.set(curNode, mirrorMeta | bitVal);
+        const inMap = weakDiag.reverseEdges.get(curNode);
+        if (inMap) {
+          for (const [callerNode, meta] of inMap.entries()) {
+            inMap.set(callerNode, meta | bitVal);
+            // we also want to grab the mirror represenstation of this...
+            const mirrorMap = weakDiag.forwardEdges.get(callerNode);
+            const mirrorMeta = mirrorMap.get(curNode);
+            mirrorMap.set(curNode, mirrorMeta | bitVal);
 
-          if (!visitedNodes.has(callerNode)) {
-            pendingNodes.push(callerNode);
-            visitedNodes.add(callerNode);
+            if (!visitedNodes.has(callerNode)) {
+              pendingNodes.push(callerNode);
+              visitedNodes.add(callerNode);
+            }
           }
         }
       }
+    } finally {
+      this.endBatch();
     }
   }
 
   mergeTraversedWeakDiagIn() {
-    const weakDiag = this.weakDiag;
-    for (const [from, toMap] of weakDiag.forwardEdges.entries()) {
-      for (const [to, meta] of toMap.entries()) {
-        // NB: we could avoid the bit-counting by just noticing that we're
-        // or-ing in a value above that's different from the existing value.  We
-        // don't actually care about the tally proper or which bits, yet...
-        // (There could be a neat color thing that could be done with a VERY
-        // small number of colors.)
-        if (bitCount(meta) >= 2) {
-          this.ensureEdge(from, to, meta);
-        }
-      }
-    }
+    try {
+      this.beginBatch();
 
-    for (const [to, fromMap] of weakDiag.reverseEdges.entries()) {
-      for (const [from, meta] of fromMap.entries()) {
-        // NB: we could avoid the bit-counting by just noticing that we're
-        // or-ing in a value above that's different from the existing value.  We
-        // don't actually care about the tally proper or which bits, yet...
-        // (There could be a neat color thing that could be done with a VERY
-        // small number of colors.)
-        if (bitCount(meta) >= 2) {
-          this.ensureEdge(from, to, meta);
+      const weakDiag = this.weakDiag;
+      for (const [from, toMap] of weakDiag.forwardEdges.entries()) {
+        for (const [to, meta] of toMap.entries()) {
+          // NB: we could avoid the bit-counting by just noticing that we're
+          // or-ing in a value above that's different from the existing value.  We
+          // don't actually care about the tally proper or which bits, yet...
+          // (There could be a neat color thing that could be done with a VERY
+          // small number of colors.)
+          if (bitCount(meta) >= 2) {
+            this.ensureEdge(from, to, meta);
+          }
         }
       }
+
+      for (const [to, fromMap] of weakDiag.reverseEdges.entries()) {
+        for (const [from, meta] of fromMap.entries()) {
+          // NB: we could avoid the bit-counting by just noticing that we're
+          // or-ing in a value above that's different from the existing value.  We
+          // don't actually care about the tally proper or which bits, yet...
+          // (There could be a neat color thing that could be done with a VERY
+          // small number of colors.)
+          if (bitCount(meta) >= 2) {
+            this.ensureEdge(from, to, meta);
+          }
+        }
+      }
+    } finally {
+      this.endBatch();
     }
   }
 

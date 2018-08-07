@@ -77,6 +77,7 @@ export default class DirtyingComponent extends React.PureComponent {
   }
 
   onDirty() {
+console.log('dirtying component got new serial', this.repObj.serial, this.repObj);
     this.setState({ serial: this.repObj.serial });
   }
 }

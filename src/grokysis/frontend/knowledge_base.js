@@ -207,4 +207,10 @@ export default class KnowledgeBase {
 
     return diagram;
   }
+
+  restoreDiagram(serialized) {
+    const diagram = new ClassDiagram();
+    diagram.loadFromSerialized(serialized);
+    return diagram;
+  }
 }

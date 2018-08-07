@@ -19,14 +19,27 @@ export default class ClassDiagram extends DirtyingComponent {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     if (this.diagramRef.current) {
       const diagram = this.props.diagram;
       const dot = diagram.lowerToGraphviz();
       console.log('rendering DOT:\n' + dot);
       gViz.renderSVGElement(dot).then((elem) => {
-        this.diagramRef.current.appendChild(elem);
+        const container = this.diagramRef.current;
+        if (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+        container.appendChild(elem);
       });
+    } else {
+      console.log('no ref?');
     }
+  }
+
+  componentDidUpdate() {
+    console.log('got componentDidUpdate');
+    // we do the same thing on mount and update.
+    this.componentDidMount();
   }
 
   render() {

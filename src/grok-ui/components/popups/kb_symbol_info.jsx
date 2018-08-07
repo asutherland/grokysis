@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { Header, List, Tab } from 'semantic-ui-react';
+import { Button, Header, List, Tab } from 'semantic-ui-react';
 
 import DirtyingComponent from '../dirtying_component.js';
 
@@ -21,21 +21,44 @@ export default class KBSymbolInfo extends DirtyingComponent {
     super(props, 'symInfo');
   }
 
-  onSymbolClicked(symInfo) {
+  onSymbolClicked(evt, symInfo) {
+    evt.stopPropagation();
+    evt.preventDefault();
+
     this.props.sessionThing.addThingInOtherTrack({
       type: 'symbolView',
       persisted: { rawSymbol: symInfo.rawName },
     });
   }
 
+  onAddContextEdge(evt) {
+    evt.stopPropagation();
+    evt.preventDefault();
+
+    const symInfo = this.props.symInfo;
+    const fromSymInfo = this.props.fromSymInfo;
+
+    const thing = this.props.sessionThing;
+    thing.sendSlotMessage('diagram', 'addEdge',
+      { from: fromSymInfo, to: symInfo });
+  }
+
   render() {
     const symInfo = this.props.symInfo;
+    const fromSymInfo = this.props.fromSymInfo;
 
     const panes = [];
 
     let maybeSource;
     if (symInfo.sourceFragment) {
       maybeSource = <SymSource symInfo={ symInfo } />;
+    }
+
+    let maybeDiagramButton;
+    if (fromSymInfo) {
+      maybeDiagramButton = (
+        <Button icon='pencil' onClick={ (evt) => { this.onAddContextEdge(evt); }}/>
+      );
     }
 
     panes.push({
@@ -68,7 +91,7 @@ export default class KBSymbolInfo extends DirtyingComponent {
           symItems.push(
             <List.Item
               key={ callSym.rawName }
-              onClick={ () => { this.onSymbolClicked(callSym); } }
+              onClick={ (evt) => { this.onSymbolClicked(evt, callSym); } }
               >
               { callSym.prettyName || callSym.rawName }
             </List.Item>
@@ -87,7 +110,7 @@ export default class KBSymbolInfo extends DirtyingComponent {
       <React.Fragment>
         <Header as='h3'
           onClick={ () => { this.onSymbolClicked(symInfo); } }
-          >{ symInfo.prettiestName }</Header>
+          >{ symInfo.prettiestName } { maybeDiagramButton }</Header>
         <Tab
           menu={{ attached: true }}
           menuPosition='left'
