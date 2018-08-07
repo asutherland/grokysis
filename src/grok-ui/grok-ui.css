@@ -3,6 +3,27 @@ body, .grok-ui-root {
   box-sizing: content-box;
 }
 
+/* independent vertical scrolling hacks
+ *
+ * I want both panes to scroll independently.  I think it was working at some
+ * point, then I think it stopped.  I've done the things in this block to make
+ * it work again.  I'm calling it a hack because I haven't taken a step back and
+ * operated from first principals.  That said, the general idea is to induce a
+ * block formatting context with a constrained child through use of
+ * position: absolute.
+ */
+.grok-ui-root {
+  position: relative;
+}
+.grok-ui-wrapper {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+/* end independent vertical scrolling hacks */
+
 .grokApp {
 }
 

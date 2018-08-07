@@ -272,7 +272,7 @@ class GrokApp extends React.Component {
 
   render() {
     return (
-      <div>
+      <div className="grok-ui-wrapper">
         <ReflexContainer className="grokApp" orientation="vertical">
           <ReflexElement className="left-pane">
             <SessionNotebookContainer
