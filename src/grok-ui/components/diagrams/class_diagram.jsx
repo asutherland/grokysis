@@ -26,6 +26,11 @@ export default class ClassDiagram extends DirtyingComponent {
       //console.log('rendering DOT:\n' + dot);
       gViz.renderSVGElement(dot).then((elem) => {
         const container = this.diagramRef.current;
+        // Graph rendering is an async process, it's possible the widget ends up
+        // unmounted by the time the render occurs.
+        if (!container) {
+          return;
+        }
         if (container.firstChild) {
           container.removeChild(container.firstChild);
         }
