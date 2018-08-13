@@ -61,6 +61,15 @@ export default class KBSymbolInfo extends DirtyingComponent {
       );
     }
 
+    let maybeShowSheet;
+    if (true) {
+      maybeShowSheet = (
+        <Button
+          icon='sticky note outline'
+          onClick={(evt) => { this.onSymbolClicked(evt, this.props.symInfo ); }}/>
+      );
+    }
+
     panes.push({
       menuItem: 'Overview',
       render: () => {
@@ -109,8 +118,8 @@ export default class KBSymbolInfo extends DirtyingComponent {
     return (
       <React.Fragment>
         <Header as='h3'
-          onClick={ () => { this.onSymbolClicked(symInfo); } }
-          >{ symInfo.prettiestName } { maybeDiagramButton }</Header>
+          onClick={ () => { this.onSymbolClicked(evt, symInfo); } }
+          >{ symInfo.prettiestName } { maybeDiagramButton } { maybeShowSheet }</Header>
         <Tab
           menu={{ attached: true }}
           menuPosition='left'

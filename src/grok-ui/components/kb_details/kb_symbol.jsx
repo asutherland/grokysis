@@ -11,7 +11,7 @@ export default class KBSymbol extends DirtyingComponent {
     super(props, 'symInfo');
   }
 
-  onSymbolClicked(symInfo) {
+  onShowSymbolSheet(evt, symInfo) {
     this.props.sessionThing.addThingInOtherTrack({
       type: 'symbolView',
       persisted: { rawSymbol: symInfo.rawName },
@@ -66,13 +66,14 @@ export default class KBSymbol extends DirtyingComponent {
           symItems.push(
             <List.Item
               key={ callSym.rawName }
-              onClick={ () => { this.onSymbolClicked(callSym); } }
               >
               <Button.Group size='mini' compact={true} >
                 <Button icon='pencil'
                   onClick={ (evt) => { this.onAddContextEdge(evt, symInfo, callSym); }}/>
                 <Button icon='eye'
                   onClick={ (evt) => { this.onNavigateInto(evt, callSym); }}/>
+                <Button icon='sticky note outline'
+                  onClick={ (evt) => { this.onShowSymbolSheet(evt, callSym); }}/>
               </Button.Group>
               &nbsp;{ callSym.prettiestName }
             </List.Item>
@@ -94,13 +95,14 @@ export default class KBSymbol extends DirtyingComponent {
           symItems.push(
             <List.Item
               key={ callSym.rawName }
-              onClick={ () => { this.onSymbolClicked(callSym); } }
               >
               <Button.Group size='mini' compact={ true } >
                 <Button icon='pencil'
                   onClick={ (evt) => { this.onAddContextEdge(evt, callSym, symInfo); }}/>
                 <Button icon='eye'
                   onClick={ (evt) => { this.onNavigateInto(evt, callSym); }}/>
+                <Button icon='sticky note outline'
+                  onClick={ (evt) => { this.onShowSymbolSheet(evt, callSym); }}/>
               </Button.Group>
               &nbsp;{ callSym.prettiestName }
             </List.Item>
