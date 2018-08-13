@@ -3,6 +3,10 @@ body, .grok-ui-root {
   box-sizing: content-box;
 }
 
+.grok-ui-popup-root {
+  box-sizing: border-box;
+}
+
 /* independent vertical scrolling hacks
  *
  * I want both panes to scroll independently.  I think it was working at some

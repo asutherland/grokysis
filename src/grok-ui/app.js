@@ -290,6 +290,7 @@ class GrokApp extends React.Component {
           </ReflexElement>
         </ReflexContainer>
         <SessionPopupContainer
+          className="grok-ui-popup-root"
           grokCtx={ this.state.grokCtx }
           />
       </div>

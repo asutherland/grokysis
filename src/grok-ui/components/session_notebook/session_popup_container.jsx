@@ -52,6 +52,7 @@ export default class SessionPopupContainer extends DirtyingComponent {
 
     return (
       <Popup {...widgetInfo.popupProps}
+        className={ this.props.className }
         open={ isOpen }
         context={ context }
         position="bottom left"
