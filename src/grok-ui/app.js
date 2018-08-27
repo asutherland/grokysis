@@ -98,6 +98,7 @@ class GrokApp extends React.Component {
         sheetBindings: {
           // ## Searchfox Search Related
           searchField: {
+            spawnable: 'Raw Searchfox Search',
             factory: ({ initialValue }) => {
               return {
                 labelWidget: 'Searchfox Search',
@@ -180,6 +181,7 @@ class GrokApp extends React.Component {
           // ## Diagramming from Searchfox Exploration
           diagram: {
             slotName: 'diagram',
+            spawnable: 'Diagram',
             factory: (persisted, grokCtx) => {
               const diagram = grokCtx.kb.restoreDiagram(
                 persisted.serialized || null);
@@ -199,6 +201,7 @@ class GrokApp extends React.Component {
 
           // ## Trice Log Visualization
           triceLoader: {
+            spawnable: 'TriceLog loader',
             factory: () => {
               return {
                 labelWidget: 'Load Trice Log',

@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { Dropdown, Menu } from 'semantic-ui-react';
+
 import DirtyingComponent from '../dirtying_component.js';
 
 import NotebookSheet from './notebook_sheet.jsx';
@@ -38,6 +40,27 @@ export default class SessionNotebookContainer extends DirtyingComponent {
   }
 
   render() {
+    // ## Top menu dynamic choices
+    const addDropdownItems = this.sessionManager.userSpawnables.map(
+      ({ type, binding }) => {
+        const spawnIt = () => {
+          this.track.addThing(
+            null, null,
+            {
+              position: 'start',
+              type,
+              persisted: {}
+            });
+        };
+        return (
+          <Dropdown.Item onClick={ spawnIt } key={binding.spawnable}>
+            { binding.spawnable }
+          </Dropdown.Item>
+        );
+      });
+
+    // ## Make the noteboot sheets
+    // (See thingToWidgetAndSerial for how the cache works)
     const lastThingToWidgetAndSerial = this.thingToWidgetAndSerial;
     const nextThingToWidgetAndSerial = new Map();
     const wrappedThings = this.track.things.map((thing) => {
@@ -65,7 +88,16 @@ export default class SessionNotebookContainer extends DirtyingComponent {
 
     return (
       <div className="notebookContainer">
-      { wrappedThings }
+        <Menu>
+          <Menu.Menu position='right'>
+            <Dropdown item text='Add...'>
+              <Dropdown.Menu>
+                { addDropdownItems }
+              </Dropdown.Menu>
+            </Dropdown>
+          </Menu.Menu>
+        </Menu>
+        { wrappedThings }
       </div>
     );
   }

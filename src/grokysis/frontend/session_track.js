@@ -46,7 +46,11 @@ export default class SessionTrack extends EE {
     }
 
     let targetIdx;
-    if (relThing === null || position === 'end') {
+    if (position === 'end') {
+      targetIdx = this.things.length;
+    } else if (position === 'start') {
+      targetIdx = 0;
+    } else if (relThing === null) {
       targetIdx = this.things.length;
     } else {
       targetIdx = this.things.indexOf(relThing);

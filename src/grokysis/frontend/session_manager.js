@@ -87,9 +87,14 @@ export default class SessionManager extends EE {
     this.popupManager = new SessionPopupManager(this);
 
     this.slotNameToBindingType = new Map();
+    this.userSpawnables = [];
+
     for (const [type, binding] of Object.entries(sheetBindings)) {
       if (binding.slotName) {
         this.slotNameToBindingType.set(binding.slotName, type);
+      }
+      if (binding.spawnable) {
+        this.userSpawnables.push({ type, binding });
       }
     }
 
