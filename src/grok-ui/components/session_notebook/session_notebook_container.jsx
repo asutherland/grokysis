@@ -88,7 +88,7 @@ export default class SessionNotebookContainer extends DirtyingComponent {
 
     return (
       <div className="notebookContainer">
-        <Menu>
+        <Menu inverted>
           <Menu.Menu position='right'>
             <Dropdown item text='Add...'>
               <Dropdown.Menu>
