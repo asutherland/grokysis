@@ -6,6 +6,8 @@ import RawSearchResults from './frontend/raw_search_results.js';
 import FilteredResults from './frontend/filtered_results.js';
 import KnowledgeBase from './frontend/knowledge_base.js';
 
+import FancyCrash from './frontend/crashes/fancy_crash.js';
+
 import TriceLog from './frontend/trice_log.js';
 
 class GrokAnalysisFrontend {
@@ -105,6 +107,8 @@ class GrokAnalysisFrontend {
     this.sessionManager.consumeSessionData(sessionThings);
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Searchfox / grokysis stuff
   async performSearch(searchStr) {
     const wireResults = await this._sendAndAwaitReply(
       "search",
@@ -127,6 +131,19 @@ class GrokAnalysisFrontend {
     );
     return wireResults;
   }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Crash Analysis AKA Crashysis stuff
+  async fetchCrashById(crashId) {
+    const wireResults = await this._sendAndAwaitReply(
+      "fetchCrashById",
+      crashId
+    );
+    return new FancyCrash(wireResults);
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Trice Log stuff
 
   async loadTriceLog(args) {
     const wireResults = await this._sendAndAwaitReply(

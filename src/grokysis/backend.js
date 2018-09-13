@@ -1,4 +1,5 @@
 import BackendDB from './backend/db.js';
+import CrashFetcher from './backend/crashes/crash_fetcher.js';
 import SearchDriver from './backend/search_driver.js';
 import loadTriceLog from './backend/trice/loader.js';
 
@@ -74,6 +75,7 @@ class BackendRouter {
   async msg_init({ name }) {
     const treeName = name;
     this.searchDriver = new SearchDriver({ treeName });
+    this.crashFetcher = new CrashFetcher();
 
     this.db = new BackendDB({ name });
 
@@ -81,17 +83,37 @@ class BackendRouter {
     return { globals, sessionThings };
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  // SearchDriver hookup
+
   msg_search(searchArgs, msgId) {
-    return this.searchDriver.performSearch(searchArgs)
+    return this.searchDriver.performSearch(searchArgs);
   }
 
   msg_fetchFile(fetchArgs) {
     return this.searchDriver.fetchFile(fetchArgs);
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  // Crashes
+  async msg_fetchCrash(crashId) {
+    const pRaw = this.crashFetcher.fetchProcessedCrashById(crashId);
+    const pRawMeta = this.crashFetcher.fetchRawCrashMetaById(crashId);
+
+    return {
+      raw: await pRaw,
+      rawMeta: await pRawMeta
+    };
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // TriceLog
   msg_loadTriceLog(loadArgs, msgId) {
     return loadTriceLog(loadArgs);
   }
+
+  //////////////////////////////////////////////////////////////////////////////
+  // backend/db.js bridging
 
   msg_configSetGlobal({ key, value }) {
     return this.db.setGlobal(key, value);

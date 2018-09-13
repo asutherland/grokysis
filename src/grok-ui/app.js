@@ -14,6 +14,10 @@ import SessionPopupContainer from
 
 import KBSymbolInfoPopup from './components/popups/kb_symbol_info.jsx';
 
+import CrashLoaderSheet from './components/sheets/crash_loader.jsx';
+import CrashDetailsSheet from './components/sheets/crash_details.jsx';
+import CrashSignatureSheet from './components/sheets/crash_signature.jsx';
+
 import DiagramSheet from './components/sheets/diagram.jsx';
 
 import KBFileViewSheet from './components/sheets/kb_file_view.jsx';
@@ -192,6 +196,59 @@ class GrokApp extends React.Component {
                   return (
                     <DiagramSheet {...props}
                       diagram={ diagram }
+                      />
+                  );
+                }
+              };
+            },
+          },
+
+          // ## Crash-Stats related stuff
+          crashLoader: {
+            spawnable: 'Crash loader',
+            factory: () => {
+              return {
+                labelWidget: 'Load crash',
+                contentPromise: null,
+                contentFactory: (props) => {
+                  return (
+                    <CrashLoaderSheet {...props}
+                      />
+                  );
+                }
+              };
+            }
+          },
+
+          crashDetails: {
+            factory: (persisted, grokCtx) => {
+              const pendingCrash = grokCtx.loadCrashID(persisted);
+
+              return {
+                labelWidget: <span>Crash Details: <i>{ persisted.crashId }</i></span>,
+                contentPromise: pendingCrash,
+                contentFactory: (props, triceLog) => {
+                  return (
+                    <TriceTimelineSheet {...props}
+                      triceLog={ triceLog }
+                      />
+                  );
+                }
+              };
+            },
+          },
+
+          crashSignature: {
+            factory: (persisted, grokCtx) => {
+              const pendingTriceLog = grokCtx.loadTriceLog(persisted);
+
+              return {
+                labelWidget: <span>Trice Log: <i>{ persisted.url }</i></span>,
+                contentPromise: pendingTriceLog,
+                contentFactory: (props, triceLog) => {
+                  return (
+                    <TriceTimelineSheet {...props}
+                      triceLog={ triceLog }
                       />
                   );
                 }

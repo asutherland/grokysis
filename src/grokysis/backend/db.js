@@ -3,6 +3,9 @@ import idb from 'idb';
 const DB_GLOBAL = 'global';
 const DB_SESSION_THINGS = 'session-things';
 
+/**
+ * Grokysis backend DB.
+ */
 export default class BackendDB {
   constructor({ name }) {
     this.dbName = `grok-${name}`;
