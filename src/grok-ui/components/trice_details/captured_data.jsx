@@ -8,6 +8,9 @@ export default class CapturedData extends React.PureComponent {
 
   render() {
     const rows = [];
+    if (!this.props.captured) {
+      return <div></div>;
+    }
     for (const [key, value] of Object.entries(this.props.captured)) {
       // key and value are already strings per tricelog implementation, so
       // there's no need to try and JSON them.  Security-wise, react/JSX already

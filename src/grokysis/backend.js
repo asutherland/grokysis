@@ -108,7 +108,7 @@ class BackendRouter {
 
   //////////////////////////////////////////////////////////////////////////////
   // TriceLog
-  msg_loadTriceLog(loadArgs, msgId) {
+  msg_loadTriceLog(loadArgs/*, msgId*/) {
     return loadTriceLog(loadArgs);
   }
 
