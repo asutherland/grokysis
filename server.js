@@ -120,6 +120,7 @@ app.get('/sf/search', async function(req, res) {
     return;
   }
   const url = `${SEARCHFOX_SEARCH_URL}?${match[1]}`;
+  console.log('proxying search:', url);
 
   // Obviously, we could stream the returned JSON as just straight-up bytes, but
   // we're also doing a little bit of normalizing here in the interests of

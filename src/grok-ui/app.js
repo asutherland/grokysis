@@ -84,6 +84,8 @@ class GrokApp extends React.Component {
         popupBindings: {
           symbolInfo: {
             factory: ({ symInfo, fromSymInfo }, grokCtx, sessionThing) => {
+              // Trigger full analysis of the symbol.
+              grokCtx.kb.ensureSymbolAnalysis(symInfo);
               return {
                 popupProps: {},
                 contents: (
@@ -166,7 +168,9 @@ class GrokApp extends React.Component {
 
           symbolView: {
             factory: (persisted, grokCtx) => {
-              const symInfo = grokCtx.kb.lookupRawSymbol(persisted.rawSymbol);
+              // Do asynchronously trigger full analysis of the symbol.
+              const symInfo =
+                grokCtx.kb.lookupRawSymbol(persisted.rawSymbol, true);
 
               return {
                 labelWidget: `Symbol: ${ symInfo.rawName }`,

@@ -169,21 +169,74 @@ export default class KnowledgeBase {
 
   /**
    * Dig up info on a symbol by:
-   * - TODO Running a searchfox search on the symbol.
-   * - TODO Populate edge information from the results.  (We get in edges and
-   *   out edges this way, whereas source analysis only generates out edges,
-   *   although we do generate the reflexive use edge.)
-   * - TODO With the search results, ensure the file hosting the definition gets
-   *   analyzed so we have the source analysis.
-   * - TODO Also analyze the declaration, if appropriate/different, if only so
-   *   we can have the syntax-highlighted source for it.
+   * - Running a searchfox search on the symbol.
+   * - Populate incoming edge information from the "uses" results.
+   * - Trigger analysis of any files cited as "decls" or "defs".  This produces
+   *   out edges and should get us the syntax-highlighted source.
    */
   async _analyzeSymbol(symInfo) {
+    // Perform the raw Searchfox search.
+    const filteredResults =
+      await this.grokCtx.performSearch(`symbol:${symInfo.rawName}`);
 
+    // XXX just grab the bare metal raw results out.
+    // Note that these are the transformed results produced by
+    // `normalize_search_results.js`.
+    const raw = filteredResults.rawResultsList[0].raw;
 
+    // Iterate over: normal/test/generated/etc.
+    console.log("analyzeSymbol: raw result:", raw);
+    for (const [dirType, grouped] of Object.entries(raw)) {
+      // grouped looks like { files, fulltext, semantic } with a dict of symbols
+      // below semantic.
+      if (!grouped.semantic) {
+        continue;
+      }
 
+      // Each key is a pretty symbol name.  Each value is a dictionary of use
+      // groups like "defs", "decls", etc.
+      for (const [prettyName, useGroups] of Object.entries(grouped.semantic)) {
+        if (symInfo.fullName && prettyName !== symInfo.fullName) {
+          console.warn('Skipping pretty symbol name', prettyName,
+                       'that does not match expected pretty name:',
+                       symInfo.fullName);
+        }
 
+        // Each key is the use-type like "defs", "decls", etc. and the values
+        // are PathLines objects of the form { path, lines }
+        for (const [useType, pathLinesArray] of Object.entries(useGroups)) {
+          if (useType === 'uses') {
+            for (const pathLines of pathLinesArray) {
+              for (const lineResult of pathLines.lines) {
+                if (lineResult.contextsym) {
+                  const contextSym = this.lookupRawSymbol(
+                    lineResult.contextsym, false, lineResult.context,
+                    // Provide a path for pretty name mangling normalization.
+                    { somePath: pathLines.path });
 
+                  symInfo.receivesCallsFrom.add(contextSym);
+                  symInfo.markDirty();
+                  contextSym.callsOutTo.add(symInfo);
+                  contextSym.markDirty();
+                }
+              }
+            }
+          }
+          // For definitions and decls make sure we're processing the file, but
+          // there's no need to wait for it to finish processing.
+          if (useType === 'defs') {
+            for (const pathLines of pathLinesArray) {
+              this.ensureFileAnalysis(pathLines.path);
+            }
+          }
+          if (useType === 'decls') {
+            for (const pathLines of pathLinesArray) {
+              this.ensureFileAnalysis(pathLines.path);
+            }
+          }
+        }
+      }
+    }
   }
 
   /**
