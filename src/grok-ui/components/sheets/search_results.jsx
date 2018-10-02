@@ -14,9 +14,14 @@ export default class SearchResultsSheet extends DirtyingComponent {
   }
 
   render() {
+    const { sessionThing, grokCtx } = this.props;
     const rawResults = this.props.searchResults.rawResultsList[0];
     return (
-      <RawResults rawResults={ rawResults }/>
+      <RawResults
+        sessionThing={ sessionThing }
+        grokCtx={ grokCtx }
+        rawResults={ rawResults }
+        />
     );
   }
 }

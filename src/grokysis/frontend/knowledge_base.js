@@ -7,6 +7,37 @@ import ClassDiagram from './diagramming/class_diagram.js';
 import InternalDoodler from './diagramming/internal_doodler.js';
 
 /**
+ * Hacky attempt to deal with searchfox using comma-delimited symbols in places
+ * where you might not expect it.
+ */
+function normalizeSymbol(symStr, commaExpected) {
+  if (!symStr) {
+    return null;
+  }
+  if (symStr.indexOf(',') !== -1) {
+    if (!commaExpected) {
+      // Get a backtrace so we can figure out who is doing this.
+      console.error('Caller passed comma-delimited symbol name:', symStr);
+    }
+    return symStr.split(',', 1)[0];
+  }
+  return symStr;
+}
+
+/**
+ * Check if two (inclusive start offset, exclusive end offset) ranges intersect.
+ */
+function boundsIntersect(a, b) {
+  // They don't intersect if the first range ends before the second range starts
+  // OR the first range ends after the second range ends.
+  if (a[1] <= b[0] ||
+      a[0] >= b[1]) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Hand-waving source of information that's not spoon-fed to us by searchfox or
  * lower level normalization layers.  This means a home for:
  * - higher level analysis that should migrate into searchfox proper once
@@ -72,6 +103,8 @@ export default class KnowledgeBase {
    * @param {String} [prettyName]
    */
   lookupRawSymbol(rawName, doAnalyze, prettyName, opts) {
+    rawName = normalizeSymbol(rawName); // deal with comma-delimited symbols.
+
     let symInfo = this.symbolsByRawName.get(rawName);
     if (symInfo) {
       if (prettyName && !symInfo.prettyName) {
@@ -112,8 +145,16 @@ export default class KnowledgeBase {
    * symbol is and return that, and have that symbol reference the other
    * symbol(s) via some type of relationship.
    */
-  async asyncLookupSymbolAtLocation({ pretty, path, lineNum, line, bounds }) {
+  async asyncLookupSymbolAtLocation({ path, lineNum, bounds }) {
     const fi = await this.ensureFileAnalysis(path);
+    const zbLineNum = lineNum - 1;
+    const synLine = fi.lineToSymbolBounds[zbLineNum];
+    for (const symBounds of synLine) {
+      if (boundsIntersect(symBounds.bounds, bounds)) {
+        return symBounds.symInfo;
+      }
+    }
+    return null;
   }
 
 
@@ -210,7 +251,8 @@ export default class KnowledgeBase {
               for (const lineResult of pathLines.lines) {
                 if (lineResult.contextsym) {
                   const contextSym = this.lookupRawSymbol(
-                    lineResult.contextsym, false, lineResult.context,
+                    normalizeSymbol(lineResult.contextsym), false,
+                    lineResult.context,
                     // Provide a path for pretty name mangling normalization.
                     { somePath: pathLines.path });
 

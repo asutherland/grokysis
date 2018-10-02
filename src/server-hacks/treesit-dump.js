@@ -9,6 +9,7 @@ const langsByExtension = {
   'cpp': l_cpp,
   'cc': l_cpp,
   'c': l_c,
+  'h': l_cpp,
   'js': l_js,
   'rust': l_rust,
 };
@@ -21,7 +22,7 @@ function parseSourceToJsonable(docStr, relpath) {
   const ext = relpath.split('.').slice(-1)[0];
 
   if (!langsByExtension.hasOwnProperty(ext)) {
-    return null;
+    throw new Error(`Unsupported extension: ${ext}`);
   }
 
   const lang = langsByExtension[ext];

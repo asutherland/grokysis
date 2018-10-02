@@ -121,7 +121,7 @@ class GrokApp extends React.Component {
           },
 
           searchResult: {
-            factory: ({ searchText }, grokCtx) => {
+            factory: ({ searchText }, grokCtx, sessionThing) => {
             // Trigger a search, this returns a promise.
               const pendingResults = grokCtx.performSearch(searchText);
 
@@ -136,6 +136,8 @@ class GrokApp extends React.Component {
                 contentFactory: (props, searchResults) => {
                   return (
                     <SearchResultsSheet {...props}
+                      grokCtx={ grokCtx }
+                      sessionThing={ sessionThing }
                       searchResults={ searchResults }
                       />
                   );

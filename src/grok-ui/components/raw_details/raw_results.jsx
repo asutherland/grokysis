@@ -13,6 +13,7 @@ import './raw_results.css';
  */
 export default class RawResults extends React.PureComponent {
   render() {
+    const { sessionThing, grokCtx } = this.props;
     const rawSearchResults = this.props.rawResults;
     const rawResults = rawSearchResults.raw;
 
@@ -23,7 +24,12 @@ export default class RawResults extends React.PureComponent {
       const renderedSymbolHits = [];
       for (const [symbol, groupedHits] of Object.entries(symbolHits)) {
         renderedSymbolHits.push(
-          <SymbolHit key={ symbol } symbolName={ symbol } hitDict={ groupedHits } />
+          <SymbolHit
+            key={ symbol }
+            grokCtx={ grokCtx }
+            sessionThing={ sessionThing }
+            symbolName={ symbol }
+            hitDict={ groupedHits } />
         );
       }
       return (
@@ -36,7 +42,12 @@ export default class RawResults extends React.PureComponent {
     return (
       <div>
         <div className="rawResults__hitDict">
-          <HitDict hitDict={ rawResults } contentFactory={ contentFactory } />
+          <HitDict
+            grokCtx={ grokCtx }
+            sessionThing={ sessionThing }
+            hitDict={ rawResults }
+            contentFactory={ contentFactory }
+            />
         </div>
       </div>
     );

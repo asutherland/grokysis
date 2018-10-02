@@ -96,6 +96,7 @@ app.get(/^\/sf\/spage\/(.+)$/, async function (req, res) {
   let ast = null;
   let astError = null;
   try {
+    console.log('extracting AST for:', relpath);
     ast = parseSourceToJsonable(sourceText, relpath);
   } catch (ex) {
     astError = ex.message;

@@ -59,10 +59,13 @@ export default class FileAnalyzer {
    * braced compound statement and we assume sane white-spacing.
    */
   _extractMethodBoundariesFromAST(ast) {
-    // the rows are 0-based, so add 1 to the translation_unit node.
-    if (ast.type !== 'translation_unit') {
+    // This should be a translation unit, but an outer ERROR also is possible
+    // and honestly we don't really care that much.
+    if (ast.type !== 'translation_unit' &&
+        ast.type !== 'ERROR') {
       throw new Error('bad root AST node type: ' + ast.type);
     }
+    // the rows are 0-based, so add 1 to the translation_unit node.
     const lmap = new Array(ast.endPosition.row + 1);
 
     /**
@@ -135,6 +138,12 @@ export default class FileAnalyzer {
       }
       fullName += localId;
 
+      if (!boundingNode) {
+        console.warn('trying to mark', fullName, 'with type', type,
+                     'with null boundingNode');
+        return;
+      }
+
       const markingObj = { type, method: fullName };
 
       for (let i = boundingNode.startPosition.row;
@@ -206,6 +215,8 @@ export default class FileAnalyzer {
       switch (node.type) {
         // ## RECURSIVE TYPES
         // ### Naively recurse.
+        // Errors are full of interesting stuff, keep going.
+        case 'ERROR':
         case 'translation_unit':
           walkChildrenOf = node;
           break;
@@ -331,13 +342,6 @@ export default class FileAnalyzer {
         // also, the access specifiers ("public","private") in a class:
         case 'access_specifier':
           return;
-        // Errors are when tree-sitter can't figure out what's going on.  This
-        // will frequently be something that builds on complicated macros like
-        // NS_IMPL_ISUPPORTS that look something like function declarations but
-        // are not.
-        case 'ERROR':
-          return;
-
 
         default:
           console.warn('unknown node type:', node.type, node);
@@ -478,6 +482,7 @@ export default class FileAnalyzer {
               console.warn('unsupported symbol type:', type);
               continue;
             case 'constructor':
+            case 'destructor':
             case 'function':
               // do use, fall out.
               break;
@@ -587,7 +592,7 @@ export default class FileAnalyzer {
               // field.  We punt to the helper below and its hand-waving.
               const bestRawSym = pickBestSymbolFromSearches(searches);
               if (bestRawSym) {
-                const synSym = this.kb.lookupRawSymbol(bestRawSym);
+                const synSym = this.kb.lookupRawSymbol(bestRawSym, false);
                 const symBounds = {
                   bounds: [offset, offset + tcLen],
                   type: isDef ? 'def' : 'use',
