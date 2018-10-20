@@ -308,9 +308,15 @@ export default class FileAnalyzer {
         // ## INERT BORING types
         // These are types that we don't need to bother looking in or
         // considering at all.
+        case '*':
+        case '<':
+        case '>':
+        case '(':
+        case ')':
         case '{':
         case '}':
         case ';':
+        case ':':
         case '\\n':
         case 'comment':
         case 'alias_declaration': // [using, type_identifier, =, type_descriptor, ;]
@@ -324,6 +330,12 @@ export default class FileAnalyzer {
         case 'preproc_function_def': // contains '#define', 'identifier',
           // 'preproc_params', okay and even more.  so much more.
         case 'preproc_call': // containts 'preproc_directive', 'preproc_arg'
+        // These may be preprocessor directives that failed to parse and that we
+        // traversed into due to an ERROR
+        case '#ifdef':
+        case '#endif':
+        // Similar issue for these:
+        case 'private':
         // I don't believe a using declaration can impact the fully qualified
         // name of a subsequent declaration, since they're required to be fully
         // qualified if being poked into an existing namespace (from outside a
@@ -341,6 +353,10 @@ export default class FileAnalyzer {
         case 'field_declaration':
         // also, the access specifiers ("public","private") in a class:
         case 'access_specifier':
+        // various low-level things:
+        case 'identifier':
+        case 'primitive_type':
+        case 'type_identifier':
           return;
 
         default:
@@ -680,11 +696,17 @@ export default class FileAnalyzer {
             for (const jumps of lineCallJumps) {
               // NB: pretty is also included here
               for (const { sym, pretty } of jumps) {
+                let prevSymbols = [];
                 for (const rawSym of sym.split(',')) {
                   const linkedSym =
                     this.kb.lookupRawSymbol(rawSym, false, pretty);
                   curSym.callsOutTo.add(linkedSym);
                   linkedSym.receivesCallsFrom.add(curSym);
+                  for (const prevSym of prevSymbols) {
+                    prevSym.superSymbols.add(linkedSym);
+                    linkedSym.subSymbols.add(prevSym);
+                  }
+                  prevSymbols.push(linkedSym);
                 }
               }
             }

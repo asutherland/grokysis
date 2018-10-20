@@ -286,10 +286,12 @@ class HierBuilder {
       s += this._renderNode(kid, kidIndent) + '\n';
     }
 
-    s += '\n';
-
-    for (const { from, to } of node.edges) {
-      s += kidIndent + from.edgeOutId + ' -> ' + to.edgeInId + ';\n';
+    // node.edges may be null if shunted to the parent in the 'record' case.
+    if (node.edges) {
+      s += '\n';
+      for (const { from, to } of node.edges) {
+        s += kidIndent + from.edgeOutId + ' -> ' + to.edgeInId + ';\n';
+      }
     }
 
     s += wrapEnd;

@@ -82,6 +82,13 @@ export default class SymbolInfo extends EE {
     this.analyzed = false;
 
     /**
+     * This is a set of symbols that have been found to be superclass ancestors
+     * of this symbol.
+     */
+    this.superSymbols = new Set();
+    this.subSymbols = new Set();
+
+    /**
      * Indicates if we believe this symbol to be unimportant to understanding
      * the program at a higher level.  For example, string manipulation code is
      * boring from an application control-flow graph perspective.  The use of
