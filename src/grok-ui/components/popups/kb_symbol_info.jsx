@@ -57,7 +57,9 @@ export default class KBSymbolInfo extends DirtyingComponent {
     let maybeDiagramButton;
     if (fromSymInfo) {
       maybeDiagramButton = (
-        <Button icon='pencil' onClick={ (evt) => { this.onAddContextEdge(evt); }}/>
+        <Button
+          icon='pencil'
+          onClick={ (evt) => { this.onAddContextEdge(evt); }}/>
       );
     }
 
@@ -118,8 +120,13 @@ export default class KBSymbolInfo extends DirtyingComponent {
     return (
       <React.Fragment>
         <Header as='h3'
-          onClick={ () => { this.onSymbolClicked(evt, symInfo); } }
-          >{ symInfo.prettiestName } { maybeDiagramButton } { maybeShowSheet }</Header>
+          onClick={ (evt) => { this.onSymbolClicked(evt, symInfo); } }
+          >{ symInfo.prettiestName }
+            &nbsp;
+            <Button.Group size='tiny'>
+              { maybeDiagramButton } { maybeShowSheet }
+            </Button.Group>
+        </Header>
         <Tab
           menu={{ attached: true }}
           menuPosition='left'
