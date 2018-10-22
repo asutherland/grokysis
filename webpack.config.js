@@ -1,9 +1,9 @@
 const path = require('path');
-const webpack = require('webpack');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 module.exports = {
+  mode: 'development',
   entry: {
     'grok-ui': './src/grok-ui/app.js',
     //'crash-ui': './src/crash-ui/app.js',
@@ -17,9 +17,6 @@ module.exports = {
     new HTMLWebpackPlugin({
       title: 'Too Many Tools'
     }),
-    new webpack.optimize.CommonsChunkPlugin({
-      name: 'common' // Specify the common bundle's name.
-    })
   ],
   module: {
     rules: [
@@ -61,6 +58,11 @@ module.exports = {
         },
       },
     ]
+  },
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
   },
   output: {
     filename: '[name].bundle.js',
