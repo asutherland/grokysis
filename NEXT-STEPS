@@ -19,7 +19,7 @@ displays:
 
 Exploration / navigation takes the form of:
 - Whole-page search results using the react 'raw' widgets.
-- Context menu is of couse the fancy one, but with "eyeball replacement"
+- Context menu is of course the fancy one, but with "eyeball replacement"
   traversal "navigating" the page.
   - Things that spawn other sheets should (eventually) go to a linked window via
     window.open.  This does have session implications, as the other window
