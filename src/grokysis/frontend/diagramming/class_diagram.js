@@ -290,6 +290,12 @@ class HierBuilder {
     if (node.edges) {
       s += '\n';
       for (const { from, to } of node.edges) {
+        // HACK: Don't expose edges to the root node.
+        // This is a scenario that happens when clicking on a class Type because
+        // all of the members end up referring to the Type itself.
+        if (!from.edgeOutId || !to.edgeInId) {
+          continue;
+        }
         s += kidIndent + from.edgeOutId + ' -> ' + to.edgeInId + ';\n';
       }
     }

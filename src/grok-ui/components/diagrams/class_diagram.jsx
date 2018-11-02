@@ -23,7 +23,7 @@ export default class ClassDiagram extends DirtyingComponent {
     if (this.diagramRef.current) {
       const diagram = this.props.diagram;
       const dot = diagram.lowerToGraphviz();
-      //console.log('rendering DOT:\n' + dot);
+      console.log('rendering DOT:\n' + dot);
       gViz.renderSVGElement(dot).then((elem) => {
         const container = this.diagramRef.current;
         // Graph rendering is an async process, it's possible the widget ends up
