@@ -3,13 +3,7 @@ import React from 'react';
 import './sym_source.css';
 
 /**
- * Given a `hitDict` which consists of a number of keys like "defs"/"uses"/etc.
- * and associated values, present a tab-like interface to switch between them.
- * Props are:
- * - hitDict: Contains the keys/values
- * - contentFactory: Function(values, key) to produce the appropriate tree for
- *   the given tab.  The idea is this makes this widget somewhat reusable, at
- *   least while it's in flux.
+ * Display the source for a symbol.
  */
 export default class SymSource extends React.PureComponent {
   constructor(props) {

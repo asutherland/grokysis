@@ -228,15 +228,15 @@ class GrokApp extends React.Component {
 
           crashDetails: {
             factory: (persisted, grokCtx) => {
-              const pendingCrash = grokCtx.loadCrashID(persisted);
+              const pendingCrash = grokCtx.fetchCrashById(persisted.crashId);
 
               return {
                 labelWidget: <span>Crash Details: <i>{ persisted.crashId }</i></span>,
                 contentPromise: pendingCrash,
-                contentFactory: (props, triceLog) => {
+                contentFactory: (props, crashDetails) => {
                   return (
-                    <TriceTimelineSheet {...props}
-                      triceLog={ triceLog }
+                    <CrashDetailsSheet {...props}
+                      crashDetails={ crashDetails }
                       />
                   );
                 }

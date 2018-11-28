@@ -96,7 +96,7 @@ class BackendRouter {
 
   //////////////////////////////////////////////////////////////////////////////
   // Crashes
-  async msg_fetchCrash(crashId) {
+  async msg_fetchCrashById(crashId) {
     const pRaw = this.crashFetcher.fetchProcessedCrashById(crashId);
     const pRawMeta = this.crashFetcher.fetchRawCrashMetaById(crashId);
 

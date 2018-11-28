@@ -7,7 +7,8 @@ export default class CrashDetailsSheet extends React.Component {
 
   render() {
     return (
-      <div />
+      <pre>{ JSON.stringify(this.props.crashDetails, null, 2) }
+      </pre>
     );
   }
 }

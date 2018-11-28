@@ -524,6 +524,11 @@ export default class FileAnalyzer {
 
     try {
       const codePre = hdoc.querySelector('#file tbody tr td.code pre');
+      finfo.sourceFragment = new DocumentFragment();
+      // We want to be able to show the entire file source.  The individual
+      // SymInfo.sourceFragment DocumentFragments steal the lines, so it's up
+      // to us to clone here.
+      finfo.sourceFragment.appendChild(codePre.cloneNode(true));
 
       // ## Process the HTML along method boundaries.
       // Snapshot the children so we can mutate the DOM, re-parenting the lines

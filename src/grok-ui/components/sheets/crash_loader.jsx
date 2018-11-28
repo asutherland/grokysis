@@ -7,7 +7,8 @@ export default class CrashLoaderSheet extends React.Component {
   constructor(props) {
     super(props);
 
-    this.handleSubmit = this.handleSubmit.bind(this);
+    this.handleSubmitSingle = this.handleSubmitSingle.bind(this);
+    this.handleSubmitSignature = this.handleSubmitSignature.bind(this);
 
     this.crashIdRef = React.createRef();
     this.crashSignatureRef = React.createRef();
@@ -16,7 +17,13 @@ export default class CrashLoaderSheet extends React.Component {
   handleSubmitSingle(event) {
     event.preventDefault();
 
-    const crashId = this.crashIdRef.current.value;
+    let crashId = this.crashIdRef.current.value;
+
+    // Chop off any "bp-" prefix.  That's just for bugzilla to be able to
+    // detect crash id's.
+    if (crashId.startsWith('bp-')) {
+      crashId = crashId.slice(3);
+    }
 
     this.props.sessionThing.addThing({
       type: 'crashDetails',
