@@ -1,3 +1,19 @@
+## Graphing
+
+Need:
+- **"Calls" edges without having to scrape the source while parsing**
+  - This could happen via aggregating these edges into a symbol info that would
+    have a huge hunk of information, but that could be a lot, and without the
+    indexer filtering out boring stuff, could really get huge.
+  - Potentially better is to make the file analysis results explicitly include
+    nesting so that the analysis file is basically an AST.
+    - This will directly provide position:sticky capabilities as well as making
+      things easier for tooling.
+    - It could also then make sense to maybe just expose the enriched analysis
+      files directly, along-side the HTML?  Or maybe the HTML just with semantic
+      mark-up is really fine too.  (The argument it's not fine is that it makes
+      it harder for workers to do stuff.)
+
 ## Crash Analysis related
 [ ] Get the crash details sheet showing the list of threads in a crash.
 
@@ -29,3 +45,11 @@ Exploration / navigation takes the form of:
       on its own.
 - Traversals add an edge in the graph.  Some UI is added to delete boring edges
   or nodes (which really means clearing out all its edges).
+
+## Searchfox Fancy Search Graph
+
+### Example use-cases
+
+#### `GetUsage`
+
+Has a nice set of related and unrelated things that could have some graphing.

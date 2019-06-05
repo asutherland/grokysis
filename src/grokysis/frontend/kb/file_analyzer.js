@@ -455,12 +455,13 @@ export default class FileAnalyzer {
      *
      * The items are referenced via "data-i" attributes on syntax-highlighted
      * spans for which this info is available.  Any span that has a "data-i"
-     * should also have a "data-id" attribute for searchfox's "highlight"
-     * functionality where other instances of the same underlying symbol will
+     * should also have a "data-symbols" attribute for searchfox's "highlight"
+     * functionality where other instances of the same underlying symbol(s) will
      * be highlighted on hover or when requested via "Sticky highlight" menu
-     * option.  The data-id will be the same as one of the `sym` entries; a
-     * heuristic picks which and it's subject to change because it's still not
-     * perfect.
+     * option.  (Note: "data-symbols" was previously "data-id" which was
+     * heuristically chosen to be one of the the symbols.  We never used
+     * "data-id" because the heuristic was not helpful to our analysis, and
+     * "data-symbols" is redundant.
      */
     let anData;
     /**
