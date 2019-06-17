@@ -1,6 +1,6 @@
 import SymbolInfo from './kb/symbol_info.js';
 import FileInfo from './kb/file_info.js';
-import FileAnalyzer from './kb/file_analyzer.js';
+//import FileAnalyzer from './kb/file_analyzer.js';
 
 import ClassDiagram from './diagramming/class_diagram.js';
 
@@ -93,7 +93,7 @@ export default class KnowledgeBase {
      */
     this.filesByPath = new Map();
 
-    this.fileAnalyzer = new FileAnalyzer(this);
+    this.fileAnalyzer = null; // new FileAnalyzer(this);
   }
 
   /**
@@ -163,6 +163,8 @@ export default class KnowledgeBase {
    * corresponds to the file.
    */
   async ensureFileAnalysis(path) {
+    throw new Error('NO LONGER DO THIS');
+/*
     let fi = this.filesByPath.get(path);
     if (fi) {
       if (fi.analyzed) {
@@ -187,6 +189,7 @@ export default class KnowledgeBase {
     fi.markDirty();
     console.log('finished analyzing file', fi);
     return fi;
+*/
   }
 
   async ensureSymbolAnalysis(symInfo) {
