@@ -38,6 +38,8 @@ export default class KBSymbol extends DirtyingComponent {
 
     const panes = [];
 
+    // XXX since we no longer extract data from scraping the HTML, we no longer
+    // actually have the source currently.
     let maybeSource;
     if (symInfo.sourceFragment) {
       maybeSource = (
@@ -49,10 +51,11 @@ export default class KBSymbol extends DirtyingComponent {
     }
 
     panes.push({
-      menuItem: 'Source',
+      menuItem: 'Info',
       render: () => {
         return (
           <Tab.Pane>
+            <div>{ symInfo.syntaxKind }</div>
             { maybeSource }
           </Tab.Pane>
         );

@@ -76,7 +76,7 @@ export default class SymbolInfo extends EE {
     this.defLocation = defLocation || null;
 
     this.typeLetter = '?';
-    this.type = 'unknown';
+    this.syntaxKind = 'unknown';
 
     this.analyzing = false;
     this.analyzed = false;
@@ -229,6 +229,11 @@ export default class SymbolInfo extends EE {
     this.fullyQualifiedParts = nsParts;
 
     this.markDirty();
+  }
+
+  updateSyntaxKindFrom(syntaxKind) {
+    this.syntaxKind = syntaxKind;
+    this.typeLetter = syntaxKind[0];
   }
 
   /**

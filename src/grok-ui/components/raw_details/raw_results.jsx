@@ -15,21 +15,30 @@ export default class RawResults extends React.PureComponent {
   render() {
     const { sessionThing, grokCtx } = this.props;
     const rawSearchResults = this.props.rawResults;
-    const rawResults = rawSearchResults.raw;
+    // Copy over the contents of raw, filtering out the '*'-wrapped metadata
+    // fields that searchfox returns.
+    const rawResults = {};
+    for (const [key, val] of Object.entries(rawSearchResults.raw)) {
+      if (key.startsWith('*')) {
+        continue;
+      }
+
+      rawResults[key] = val;
+    }
 
     const contentFactory = (typedResults) => {
       // XXX for now, just pierce "semantic" directly, which means we ignore
       // "files" and "fulltext" results.
-      const symbolHits = typedResults.semantic || {};
+      const symbolHits = typedResults; //typedResults.semantic || {};
       const renderedSymbolHits = [];
-      for (const [symbol, groupedHits] of Object.entries(symbolHits)) {
+      for (const [rawSym, rawSymInfo ] of Object.entries(symbolHits)) {
         renderedSymbolHits.push(
           <SymbolHit
-            key={ symbol }
+            key={ rawSym }
             grokCtx={ grokCtx }
             sessionThing={ sessionThing }
-            symbolName={ symbol }
-            hitDict={ groupedHits } />
+            rawSymInfo={ rawSymInfo }
+            />
         );
       }
       return (

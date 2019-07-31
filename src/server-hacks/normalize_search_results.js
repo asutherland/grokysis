@@ -21,7 +21,7 @@
  *   of that.
  *
  * Our current normalization is to re-group so that we have a hierarchy like
- * so [fileType, source, :
+ * so:
  * - "normal"/"test"/"generated"
  *   - "files": List of String paths.
  *   - "fulltext": List of PathLines objects, defined below.

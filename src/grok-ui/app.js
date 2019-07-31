@@ -172,10 +172,11 @@ class GrokApp extends React.Component {
             factory: (persisted, grokCtx) => {
               // Do asynchronously trigger full analysis of the symbol.
               const symInfo =
-                grokCtx.kb.lookupRawSymbol(persisted.rawSymbol, true);
+                grokCtx.kb.lookupRawSymbol(
+                  persisted.rawSymbol, true, persisted.pretty);
 
               return {
-                labelWidget: `Symbol: ${ symInfo.rawName }`,
+                labelWidget: `Symbol: ${ symInfo.prettiestName }`,
                 contentPromise: null,
                 contentFactory: (props) => {
                   return (

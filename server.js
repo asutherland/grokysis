@@ -38,19 +38,25 @@ function fetchJson(url) {
   return fetchAccept(url, 'application/json');
 }
 
-const parseSourceToJsonable = require('./src/server-hacks/treesit-dump.js');
+// No longer needed since we've moved to searchfox analysis.
+//const parseSourceToJsonable = require('./src/server-hacks/treesit-dump.js');
 
 const normalizeSearchResults =
   require('./src/server-hacks/normalize_search_results.js');
 
-const SEARCHFOX_BASE = 'https://searchfox.org';
-const SEARCHFOX_TREE_BASE = `${SEARCHFOX_BASE}/mozilla-central`;
-const SEARCHFOX_SEARCH_URL = `${SEARCHFOX_TREE_BASE}/search`;
+const mode = 'dev';
+let serverRoot, useRepo;
+if (mode === 'dev') {
+  serverRoot = 'http://localhost:8000';
+  useRepo = 'tests';
+} else {
+  serverRoot = 'https://asuth.searchfox.org';
+  useRepo = 'mozilla-central';
+}
 
-const HG_BASE = 'https://hg.mozilla.org';
-const HG_TREE_BASE = `${HG_BASE}/mozilla-central`;
-
-const HG_QUOTED_REV_LINK_RE = new RegExp(`"${HG_TREE_BASE}/rev/([^"]+)"`);
+const SEARCHFOX_BASE = serverRoot;
+const SEARCHFOX_TREE_BASE = `${SEARCHFOX_BASE}/${useRepo}`;
+const SEARCHFOX_SEARCH_URL = `${SEARCHFOX_TREE_BASE}/sorch`;
 
 // Tell express to use the webpack-dev-middleware and use the webpack.config.js
 // configuration file as a base.
@@ -59,6 +65,10 @@ app.use(webpackDevMiddleware(compiler, {
 }));
 
 /**
+ * XXX this is largely moot now but I'm leaving it partially in place because
+ * having the HTML source is potentially interesting, but this endpoint really
+ * wants to go away.
+ *
  * Given a URL argument like "dom/clients/api/Clients.cpp":
  * - Fetch the analysis-infused static HTML page
  *   "https://searchfox.org/mozilla-central/source/dom/clients/api/Clients.cpp"
@@ -83,32 +93,13 @@ app.get(/^\/sf\/spage\/(.+)$/, async function (req, res) {
   // <span id="rev-id">Showing <a href="/mozilla-central/commit/4611b9541894e90a421debb57ddbbcff55c2f369">4611b954</a>:</span>
   const gitId = /rev-id">Showing [^\n]+\/commit\/([^"]+)"/.exec(htmlText)[1];
 
-  const commitUrl = `${SEARCHFOX_TREE_BASE}/commit/${gitId}`;
-  const commitResp = await fetchHtml(commitUrl);
-  const commitText = await commitResp.text();
-
-  const hgId = HG_QUOTED_REV_LINK_RE.exec(commitText)[1];
-
-  const sourceUrl = `${HG_TREE_BASE}/raw-file/${hgId}/${relpath}`;
-  const sourceResp = await fetch(sourceUrl);
-  const sourceText = await sourceResp.text();
-
-  let ast = null;
-  let astError = null;
-  try {
-    console.log('extracting AST for:', relpath);
-    ast = parseSourceToJsonable(sourceText, relpath);
-  } catch (ex) {
-    astError = ex.message;
-  }
-
   res.json({
     html: htmlText,
-    source: sourceText,
-    hgId,
+    source: null,
+    hgId: null,
     gitId,
-    ast,
-    astError
+    ast: null,
+    astError: null,
   });
 });
 
@@ -128,9 +119,9 @@ app.get('/sf/search', async function(req, res) {
   // showing how we could improved the data returned by searchfox.  (Especially
   // when moving the search logic from python to rust.)
   const jsonResp = await fetchJson(url);
+  // XXX there's no actual need to round-trip through JSON here.
   const rawObj = await jsonResp.json();
-  const normalized = normalizeSearchResults(rawObj);
-  res.json(normalized);
+  res.json(rawObj);
 });
 
 // Serve the files on port 3000.

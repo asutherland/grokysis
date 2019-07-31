@@ -16,47 +16,44 @@ import './symbol_hit.css';
  */
 export default class SymbolHit extends React.PureComponent {
   async onShowSymbolSheet() {
-    const { symbolName, hitDict } = this.props;
-
-    // At this level we only have a pretty symbol name.  But deeper in the
-    // results we
-    if ('defs' in hitDict) {
-      for (const pathLines of hitDict.defs) {
-        for (const lineResult of pathLines.lines) {
-          const foundSym =
-            await this.props.grokCtx.kb.asyncLookupSymbolAtLocation({
-              path: pathLines.path,
-              lineNum: lineResult.lno,
-              bounds: lineResult.bounds
-            });
-          if (foundSym) {
-            if (foundSym.fullName && symbolName !== foundSym.fullName) {
-              console.warn('symbol hit lookup mismatch, have pretty',
-                           symbolName, 'but symbol lookup found',
-                           foundSym.fullName);
-            }
-            this.props.sessionThing.addThingInOtherTrack({
-              type: 'symbolView',
-              persisted: { rawSymbol: foundSym.rawName },
-            });
-          }
-        }
-      }
-    }
+    this.props.sessionThing.addThingInOtherTrack({
+      type: 'symbolView',
+      persisted: {
+        rawSymbol: this.props.rawSymInfo.symbol,
+        pretty: this.props.rawSymInfo.pretty,
+      },
+    });
   }
 
   render() {
-    const { symbolName, hitDict } = this.props;
+    const { pretty, meta, hits } = this.props.rawSymInfo;
 
-    const contentFactory = (pathHits, selected) => {
+    const kindContentFactory = (pathHits, selected) => {
       // We propagate selected as 'group' for keying purposes so accordion
       // state doesn't contaminate when switching between groups.
       return <PathHitList group={ selected } pathHits={ pathHits || [] } />;
     };
 
+    const pathkindContentFactory = (kindDict) => {
+      return (
+        <HitDict
+          hitDict={ kindDict }
+          contentFactory={ kindContentFactory }
+          menu={{ attached: 'top' }}
+          />
+      );
+    };
+
+    let hasDefs = false;
+    for (const kindHits of Object.values(hits)) {
+      if ('defs' in kindHits) {
+        hasDefs = true;
+      }
+    }
+
     // Upsell if we have a def.  We won't resolve until clicked on.
     let maybeUpsellSymbolInfo;
-    if ('defs' in hitDict) {
+    if (hasDefs) {
       maybeUpsellSymbolInfo = (
         <React.Fragment>
           &nbsp;
@@ -67,17 +64,22 @@ export default class SymbolHit extends React.PureComponent {
       );
     }
 
+    let maybeSyntaxKind = '';
+    if (meta.syntax) {
+      maybeSyntaxKind = ` (${meta.syntax})`;
+    }
+
     return (
       <Card fluid>
         <Card.Content className="symbolHit__hitDict">
           <Card.Header as='h3' className="symbolHit__symbol">
-            { symbolName }
+            { pretty }{ maybeSyntaxKind }
             { maybeUpsellSymbolInfo }
           </Card.Header>
         </Card.Content>
         <HitDict
-          hitDict={ hitDict }
-          contentFactory={ contentFactory }
+          hitDict={ hits }
+          contentFactory={ pathkindContentFactory }
           menu={{ attached: 'top' }}
           />
       </Card>
