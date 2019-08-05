@@ -508,6 +508,7 @@ export default class ClassDiagram extends EE {
       this.beginBatch();
       while (pendingNodes.length) {
         const curNode = pendingNodes.pop();
+        curNode.ensureCallEdges();
 
         for (const callsNode of curNode.callsOutTo) {
           handleEdge(curNode, callsNode, callsNode);

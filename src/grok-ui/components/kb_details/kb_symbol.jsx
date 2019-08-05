@@ -14,8 +14,24 @@ export default class KBSymbol extends DirtyingComponent {
   onShowSymbolSheet(evt, symInfo) {
     this.props.sessionThing.addThingInOtherTrack({
       type: 'symbolView',
-      persisted: { rawSymbol: symInfo.rawName },
+      persisted: {
+        rawSymbol: symInfo.rawName,
+        pretty: symInfo.pretty,
+      },
     });
+  }
+
+  onShowSymbolPopup(evt, clickedSymInfo) {
+    evt.stopPropagation();
+    evt.preventDefault();
+
+    this.props.sessionThing.showPopup(
+        'symbolInfo',
+        // we express ourselves as the from so that this can be used to create
+        // a graph edge.
+        { symInfo: clickedSymInfo, fromSymInfo: this.props.symInfo },
+        // the popup wants to be relative to the clicked symbol.
+        evt.target);
   }
 
   onAddContextEdge(evt, from, to) {
@@ -64,6 +80,7 @@ export default class KBSymbol extends DirtyingComponent {
     panes.push({
       menuItem: 'Calls',
       render: () => {
+        symInfo.ensureCallEdges();
         const symItems = [];
         for (const callSym of symInfo.callsOutTo) {
           symItems.push(
@@ -78,7 +95,7 @@ export default class KBSymbol extends DirtyingComponent {
                 <Button icon='sticky note outline'
                   onClick={ (evt) => { this.onShowSymbolSheet(evt, callSym); }}/>
               </Button.Group>
-              &nbsp;{ callSym.prettiestName }
+              &nbsp;<a onClick={ (evt) => { this.onShowSymbolPopup(evt, callSym); }}>{ callSym.prettiestName }</a>
             </List.Item>
           );
         }
@@ -93,6 +110,7 @@ export default class KBSymbol extends DirtyingComponent {
     panes.push({
       menuItem: 'Callers',
       render: () => {
+        symInfo.ensureCallEdges();
         const symItems = [];
         for (const callSym of symInfo.receivesCallsFrom) {
           symItems.push(
@@ -107,7 +125,7 @@ export default class KBSymbol extends DirtyingComponent {
                 <Button icon='sticky note outline'
                   onClick={ (evt) => { this.onShowSymbolSheet(evt, callSym); }}/>
               </Button.Group>
-              &nbsp;{ callSym.prettiestName }
+              &nbsp;<a onClick={ (evt) => { this.onShowSymbolPopup(evt, callSym); }}>{ callSym.prettiestName }</a>
             </List.Item>
           );
         }

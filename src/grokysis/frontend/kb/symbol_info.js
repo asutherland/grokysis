@@ -104,8 +104,15 @@ export default class SymbolInfo extends EE {
     this.isBoring = false;
     this.updateBoring();
 
-    this.callsOutTo = new Set();
-    this.receivesCallsFrom = new Set();
+    // unfiltered in/out edges.  callsOutTo/receivesCallsFrom are edges that are
+    // filtered so that only when both sides are `isCallable`.
+    this.outEdges = new Set();
+    this.inEdges = new Set();
+
+    this.callsOutTo = null;
+    this.receivesCallsFrom = null;
+
+    this._callsLastFilteredSerial = 0;
 
     /**
      * HTML document fragment containing the declaration/prototype for the
@@ -136,6 +143,21 @@ export default class SymbolInfo extends EE {
     this.emit('dirty');
   }
 
+  ensureCallEdges() {
+    if (this._callsLastFilteredSerial === this.serial) {
+      return;
+    }
+
+    if (!this.isCallable) {
+      return;
+    }
+
+    this.callsOutTo =
+      new Set([...this.outEdges].filter(x => x.isCallable()));
+    this.receivesCallsFrom =
+      new Set([...this.inEdges].filter(x => x.isCallable()));
+  }
+
   get prettiestName() {
     return this.fullName || this.rawName;
   }
@@ -146,6 +168,12 @@ export default class SymbolInfo extends EE {
 
   isMethod() {
     return this.typeLetter === 'm';
+  }
+
+  isCallable() {
+    return this.syntaxKind === 'function' ||
+           this.syntaxKind === 'constructor' ||
+           this.syntaxKind === 'destructor';
   }
 
   isSameClassAs(otherSym) {

@@ -44,13 +44,13 @@ function fetchJson(url) {
 const normalizeSearchResults =
   require('./src/server-hacks/normalize_search_results.js');
 
-const mode = 'dev';
+const mode = 'local';
 let serverRoot, useRepo;
-if (mode === 'dev') {
+if (mode === 'local') {
   serverRoot = 'http://localhost:8000';
   useRepo = 'tests';
 } else {
-  serverRoot = 'https://asuth.searchfox.org';
+  serverRoot = 'https://dev.searchfox.org';
   useRepo = 'mozilla-central';
 }
 

@@ -126,7 +126,13 @@ export default class KnowledgeBase {
     this.symbolsByRawName.set(rawName, symInfo);
 
     if (doAnalyze) {
-      this.ensureSymbolAnalysis(symInfo);
+      let hops;
+      if (doAnalyze === true) {
+        hops = 1;
+      } else {
+        hops = doAnalyze;
+      }
+      this.ensureSymbolAnalysis(symInfo, hops);
     }
 
     return symInfo;
@@ -192,20 +198,35 @@ export default class KnowledgeBase {
 */
   }
 
-  async ensureSymbolAnalysis(symInfo) {
+  async ensureSymbolAnalysis(symInfo, analyzeHops) {
+    let clampedLevel = Math.min(2, analyzeHops);
     if (symInfo.analyzed) {
+      // XXX so the hops mechanism is more than a little sketchy right now.
+      // The main idea is that for our call graph we need to know the syntax
+      // kinds of the connected symbols, so we need an analysis depth.
+      if (symInfo.analyzed < clampedLevel) {
+        symInfo.analyzed = clampedLevel;
+
+        // we need to trigger analysis for all symbols in the graph.
+        for (let otherSym of symInfo.outEdges) {
+          this.ensureSymbolAnalysis(otherSym, analyzeHops - 1);
+        }
+        for (let otherSym of symInfo.inEdges) {
+          this.ensureSymbolAnalysis(otherSym, analyzeHops - 1);
+        }
+      }
       return symInfo;
     }
     if (symInfo.analyzing) {
       return symInfo.analyzing;
     }
 
-    symInfo.analyzing = this._analyzeSymbol(symInfo);
+    symInfo.analyzing = this._analyzeSymbol(symInfo, analyzeHops);
     this.analyzingSymbols.add(symInfo);
 
     await symInfo.analyzing;
     symInfo.analyzing = false;
-    symInfo.analyzed = true;
+    symInfo.analyzed = clampedLevel;
     this.analyzingSymbols.delete(symInfo);
     symInfo.markDirty();
     return symInfo;
@@ -218,7 +239,7 @@ export default class KnowledgeBase {
    * - Trigger analysis of any files cited as "decls" or "defs".  This produces
    *   out edges and should get us the syntax-highlighted source.
    */
-  async _analyzeSymbol(symInfo) {
+  async _analyzeSymbol(symInfo, analyzeHops) {
     // Perform the raw Searchfox search.
     const filteredResults =
       await this.grokCtx.performSearch(`symbol:${symInfo.rawName}`);
@@ -246,14 +267,14 @@ export default class KnowledgeBase {
               for (const lineResult of pathLines.lines) {
                 if (lineResult.contextsym) {
                   const contextSym = this.lookupRawSymbol(
-                    normalizeSymbol(lineResult.contextsym), false,
+                    normalizeSymbol(lineResult.contextsym), analyzeHops - 1,
                     lineResult.context,
                     // Provide a path for pretty name mangling normalization.
                     { somePath: pathLines.path });
 
-                  symInfo.receivesCallsFrom.add(contextSym);
+                  symInfo.inEdges.add(contextSym);
                   symInfo.markDirty();
-                  contextSym.callsOutTo.add(symInfo);
+                  contextSym.outEdges.add(symInfo);
                   contextSym.markDirty();
                 }
               }
@@ -264,14 +285,14 @@ export default class KnowledgeBase {
               for (const lineResult of pathLines.lines) {
                 if (lineResult.contextsym) {
                   const contextSym = this.lookupRawSymbol(
-                    normalizeSymbol(lineResult.contextsym), false,
+                    normalizeSymbol(lineResult.contextsym), analyzeHops - 1,
                     lineResult.context,
                     // Provide a path for pretty name mangling normalization.
                     { somePath: pathLines.path });
 
-                  symInfo.callsOutTo.add(contextSym);
+                  symInfo.outEdges.add(contextSym);
                   symInfo.markDirty();
-                  contextSym.receivesCallsFrom.add(symInfo);
+                  contextSym.inEdges.add(symInfo);
                   contextSym.markDirty();
                 }
               }

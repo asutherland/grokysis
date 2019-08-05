@@ -65,7 +65,7 @@ export default class SymbolHit extends React.PureComponent {
     }
 
     let maybeSyntaxKind = '';
-    if (meta.syntax) {
+    if (meta && meta.syntax) {
       maybeSyntaxKind = ` (${meta.syntax})`;
     }
 
