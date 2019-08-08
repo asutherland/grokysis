@@ -29,7 +29,7 @@ const RE_JS_SYMBOL = /^(\w+#)*(\w+)#(\w+)$/;
  */
 export default class SymbolInfo extends EE {
   constructor({ rawName, defLocation, prettyName,
-                somePath, headerPath, sourcePath }) {
+                somePath, headerPath, sourcePath, syntaxKind }) {
     super();
 
     this.serial = 0;
@@ -135,6 +135,9 @@ export default class SymbolInfo extends EE {
       this.updatePrettyNameFrom(
         prettyName, sourcePath || headerPath || somePath);
     }
+    if (syntaxKind) {
+      this.updateSyntaxKindFrom(syntaxKind);
+    }
     this.updateBoring();
   }
 
@@ -148,14 +151,18 @@ export default class SymbolInfo extends EE {
       return;
     }
 
-    if (!this.isCallable) {
+    this._callsLastFilteredSerial = this.serial;
+
+    if (!this.isCallable() && !this.callsOutTo) {
+      this.callsOutTo = new Set();
+      this.receivesCallsFrom = new Set();
       return;
     }
 
     this.callsOutTo =
-      new Set([...this.outEdges].filter(x => x.isCallable()));
+      new Set([...this.outEdges].filter(x => x.isCallable() && !x.isBoring));
     this.receivesCallsFrom =
-      new Set([...this.inEdges].filter(x => x.isCallable()));
+      new Set([...this.inEdges].filter(x => x.isCallable() && !x.isBoring));
   }
 
   get prettiestName() {
@@ -269,17 +276,24 @@ export default class SymbolInfo extends EE {
    */
   updateBoring() {
     const path = this.defLocation && this.defLocation.path;
-    if (!path) {
-      return;
-    }
 
-    // XXX these ideally would come from a database that's bootstrapped off a
-    // TOML config and that can be round-tripped back to TOML.
-    // TODO: implement toml boring classification thingy.
-    if (/^xpcom\/string/.test(path) ||
-        /^mfbt\/Ref/.test(path) ||
-        /^mfbt\/.+Ptr/.test(path)) {
-      this.isBoring = true;
+    if (path) {
+      // XXX these ideally would come from a database that's bootstrapped off a
+      // TOML config and that can be round-tripped back to TOML.
+      // TODO: implement toml boring classification thingy.
+      if (/^xpcom\/string/.test(path) ||
+          /^mfbt\/Ref/.test(path) ||
+          /^mfbt\/.+Ptr/.test(path)) {
+        this.isBoring = true;
+      }
+    }
+    if (this.fullName) {
+      const fn = this.fullName;
+      if (fn.startsWith('nsCOMPtr') || fn.startsWith('RefPtr') ||
+          fn.startsWith('getter_AddRefs') ||
+          fn.startsWith('mozilla::UniquePtr')) {
+        this.isBoring = true;
+      }
     }
   }
 }

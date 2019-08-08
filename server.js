@@ -44,7 +44,7 @@ function fetchJson(url) {
 const normalizeSearchResults =
   require('./src/server-hacks/normalize_search_results.js');
 
-const mode = 'local';
+const mode = 'dev';
 let serverRoot, useRepo;
 if (mode === 'local') {
   serverRoot = 'http://localhost:8000';

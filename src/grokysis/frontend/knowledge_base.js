@@ -121,13 +121,16 @@ export default class KnowledgeBase {
       // propagate hints for the source through.
       somePath: opts && opts.somePath,
       headerPath: opts && opts.headerPath,
-      sourcePath: opts && opts.sourcePath
+      sourcePath: opts && opts.sourcePath,
+      syntaxKind: opts && opts.syntaxKind,
     });
     this.symbolsByRawName.set(rawName, symInfo);
 
     if (doAnalyze) {
       let hops;
       if (doAnalyze === true) {
+        // XXX this whole hops mechanism was to hack around the lack of knowing
+        // the syntaxKind of the "consumes" edges but
         hops = 1;
       } else {
         hops = doAnalyze;
@@ -254,46 +257,53 @@ export default class KnowledgeBase {
       }
 
       // ## Consume "meta" data
-      symInfo.updateSyntaxKindFrom(rawSymInfo.meta.syntax);
+      if (rawSymInfo.meta) {
+        symInfo.updateSyntaxKindFrom(rawSymInfo.meta.syntax);
+      }
+
+      // ## Consume "consumes"
+      if (rawSymInfo.consumes) {
+        for (let consumedInfo of rawSymInfo.consumes) {
+          const consumedSym = this.lookupRawSymbol(
+            normalizeSymbol(consumedInfo.sym), analyzeHops - 1,
+            consumedInfo.pretty,
+            // XXX it might be nice for consumes to provide the def location/filetype.
+            { syntaxKind: consumedInfo.syntax });
+
+          symInfo.outEdges.add(consumedSym);
+          symInfo.markDirty();
+          consumedSym.inEdges.add(symInfo);
+          consumedSym.markDirty();
+        }
+      }
 
       // ## Consume "hits" dicts
       // walk over normal/test/generated in the hits dict.
-      for (const [pathKind, useGroups ] of Object.entries(rawSymInfo.hits)) {
-        // Each key is the use-type like "defs", "decls", etc. and the values
-        // are PathLines objects of the form { path, lines }
-        for (const [useType, pathLinesArray] of Object.entries(useGroups)) {
-          if (useType === 'uses') {
-            for (const pathLines of pathLinesArray) {
-              for (const lineResult of pathLines.lines) {
-                if (lineResult.contextsym) {
-                  const contextSym = this.lookupRawSymbol(
-                    normalizeSymbol(lineResult.contextsym), analyzeHops - 1,
-                    lineResult.context,
-                    // Provide a path for pretty name mangling normalization.
-                    { somePath: pathLines.path });
+      if (rawSymInfo.hits) {
+        for (const [pathKind, useGroups ] of Object.entries(rawSymInfo.hits)) {
+          // Each key is the use-type like "defs", "decls", etc. and the values
+          // are PathLines objects of the form { path, lines }
+          for (const [useType, pathLinesArray] of Object.entries(useGroups)) {
+            if (useType === 'uses') {
+              for (const pathLines of pathLinesArray) {
+                for (const lineResult of pathLines.lines) {
+                  if (lineResult.contextsym) {
+                    const contextSym = this.lookupRawSymbol(
+                      normalizeSymbol(lineResult.contextsym), analyzeHops - 1,
+                      lineResult.context,
+                      // Provide a path for pretty name mangling normalization.
+                      { somePath: pathLines.path,
+                        // Assume the other thing is a function until we hear
+                        // otherwise.  This is necessary for the current call
+                        // graph filtering that wants to ensure things are
+                        // callable.
+                        syntaxKind: 'function' });
 
-                  symInfo.inEdges.add(contextSym);
-                  symInfo.markDirty();
-                  contextSym.outEdges.add(symInfo);
-                  contextSym.markDirty();
-                }
-              }
-            }
-          }
-          else if (useType === 'consumes') {
-            for (const pathLines of pathLinesArray) {
-              for (const lineResult of pathLines.lines) {
-                if (lineResult.contextsym) {
-                  const contextSym = this.lookupRawSymbol(
-                    normalizeSymbol(lineResult.contextsym), analyzeHops - 1,
-                    lineResult.context,
-                    // Provide a path for pretty name mangling normalization.
-                    { somePath: pathLines.path });
-
-                  symInfo.outEdges.add(contextSym);
-                  symInfo.markDirty();
-                  contextSym.inEdges.add(symInfo);
-                  contextSym.markDirty();
+                    symInfo.inEdges.add(contextSym);
+                    symInfo.markDirty();
+                    contextSym.outEdges.add(symInfo);
+                    contextSym.markDirty();
+                  }
                 }
               }
             }

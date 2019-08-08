@@ -511,9 +511,11 @@ export default class ClassDiagram extends EE {
         curNode.ensureCallEdges();
 
         for (const callsNode of curNode.callsOutTo) {
+          callsNode.ensureCallEdges();
           handleEdge(curNode, callsNode, callsNode);
         }
         for (const callerNode of curNode.receivesCallsFrom) {
+          callerNode.ensureCallEdges();
           handleEdge(callerNode, curNode, callerNode);
         }
       }
