@@ -30,8 +30,9 @@ export default class InternalDoodler {
 
         //console.log(from.prettiestName, to.prettiestName, tooBusy);
 
-        // previously, used isSameClassAs
-        if (from.isSameSourceFileAs(to)) {
+        // previously, used isSameClassAs, then is isSameSourceFileAs, now
+        // we use both!
+        if (from.isSameSourceFileAs(to) || from.isSameClassAs(to)) {
           // Okay, it's some type of edge, but it's only strong if it's touching
           // something already in the graph.
           if (from === rootSym) {

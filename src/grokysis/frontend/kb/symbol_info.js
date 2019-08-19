@@ -184,11 +184,12 @@ export default class SymbolInfo extends EE {
   }
 
   isSameClassAs(otherSym) {
-    return otherSym.className === this.className;
+    return this.className && otherSym.className === this.className;
   }
 
   isSameSourceFileAs(otherSym) {
-    return otherSym.sourceFileInfo === this.sourceFileInfo;
+    // Don't return true if we don't know the file info!
+    return this.sourceFileInfo && otherSym.sourceFileInfo === this.sourceFileInfo;
   }
 
   updatePrettyNameFrom(prettyName, path) {

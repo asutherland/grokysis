@@ -20,6 +20,7 @@ export default class FileInfo extends EE {
      * The set of SymbolInfo instances that are defined in this file.
      */
     this.fileSymbolDefs = new Set();
+    this.fileSymbolDecls = new Set();
 
     /**
      * Array where each item corresponds to the zero-based line in the analyzed

@@ -168,12 +168,15 @@ export default class KnowledgeBase {
 
 
   /**
+   * TODO: Modernize this mechanism to load all of the definitions from a file
+   * in a single go.
+   *
    * Given a path, asynchronously analyze and return the FileInfo that
-   * corresponds to the file.
+   * corresponds to the file.  This was previously done to get the "consumes"
+   * style edges via hacky parsing, but now we still potentially want to be able
+   * to perform analyses on source files and their matching headers.
    */
-  async ensureFileAnalysis(path) {
-    throw new Error('NO LONGER DO THIS');
-/*
+  ensureFileAnalysis(path) {
     let fi = this.filesByPath.get(path);
     if (fi) {
       if (fi.analyzed) {
@@ -187,18 +190,17 @@ export default class KnowledgeBase {
     }
 
     fi = new FileInfo({ path });
-    const data = await this.grokCtx.fetchFile({ path });
+    //const data = await this.grokCtx.fetchFile({ path });
 
-    fi.analyzing = this.fileAnalyzer.analyzeFile(fi, data);
+    //fi.analyzing = this.fileAnalyzer.analyzeFile(fi, data);
     this.filesByPath.set(path, fi);
 
-    await fi.analyzing;
+    //await fi.analyzing;
     fi.analyzing = false;
     fi.analyzed = true;
     fi.markDirty();
-    console.log('finished analyzing file', fi);
+    //console.log('finished analyzing file', fi);
     return fi;
-*/
   }
 
   async ensureSymbolAnalysis(symInfo, analyzeHops) {
@@ -284,7 +286,25 @@ export default class KnowledgeBase {
           // Each key is the use-type like "defs", "decls", etc. and the values
           // are PathLines objects of the form { path, lines }
           for (const [useType, pathLinesArray] of Object.entries(useGroups)) {
-            if (useType === 'uses') {
+            //
+            if (useType === 'defs') {
+              if (pathLinesArray.length === 1 && !symInfo.sourceFileInfo) {
+                const path = pathLinesArray[0].path;
+                symInfo.sourceFileInfo = this.ensureFileAnalysis(path);
+                symInfo.sourceFileInfo.fileSymbolDefs.add(symInfo);
+                symInfo.sourceFileInfo.markDirty();
+              }
+            }
+            else if (useType === 'decls') {
+              // XXX this will largely get confused by forwards
+              if (pathLinesArray.length === 1 && !symInfo.declFileInfo) {
+                const path = pathLinesArray[0].path;
+                symInfo.declFileInfo = this.ensureFileAnalysis(path);
+                symInfo.declFileInfo.fileSymbolDecls.add(symInfo);
+                symInfo.declFileInfo.markDirty();
+              }
+            }
+            else if (useType === 'uses') {
               for (const pathLines of pathLinesArray) {
                 for (const lineResult of pathLines.lines) {
                   if (lineResult.contextsym) {
