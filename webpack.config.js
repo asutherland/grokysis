@@ -3,7 +3,7 @@ const HTMLWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   entry: {
     'grok-ui': './src/grok-ui/app.js',
     //'crash-ui': './src/crash-ui/app.js',
@@ -63,6 +63,7 @@ module.exports = {
     splitChunks: {
       chunks: "all",
     },
+    usedExports: true,
   },
   output: {
     filename: '[name].bundle.js',
