@@ -3,7 +3,7 @@
     "binary-search-bounds": "github:bvaughn/binary-search-bounds#971e0ecbabcb1e9e657a68bf7cd937598117b688",
     "d3-array": "^1.2.4",
     "d3-axis": "^1.0.12",
-    "d3-scale": "^2.2.2",
+    "d3-scale": "^4.0.2",
     "d3-selection": "^1.4.0",
     "eventemitter3": "^3.1.2",
     "idb": "^2.1.3",
